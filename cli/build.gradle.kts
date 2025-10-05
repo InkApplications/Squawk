@@ -12,6 +12,6 @@ dependencies {
     implementation(libs.kotlin.coroutines.core)
     implementation(libs.clikt)
     implementation(libs.bundles.ktor.client)
-    implementation(projects.squawkScript)
+    implementation(projects.squawkScriptHost)
     implementation("org.slf4j:slf4j-nop:2.0.17")
 }

@@ -12,7 +12,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.runBlocking
-import squawk.script.evaluateOrThrow
+import squawk.host.evaluateOrThrow
 
 class SquawkCommand: CliktCommand()
 {
