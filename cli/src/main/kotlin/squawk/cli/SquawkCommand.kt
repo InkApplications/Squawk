@@ -15,6 +15,8 @@ import kotlinx.coroutines.runBlocking
 import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
 import java.io.File
+import java.nio.channels.UnresolvedAddressException
+import kotlin.time.measureTimedValue
 
 class SquawkCommand: CliktCommand()
 {
@@ -30,21 +32,33 @@ class SquawkCommand: CliktCommand()
                         val name = endpoint.name ?: scriptFile.nameWithoutExtension
                         DisplayOutput.endpointTitle(name)
                         DisplayOutput.requestUrl(endpoint.method.key, endpoint.url)
-                        val result = client.request {
-                            method = HttpMethod(endpoint.method.key)
-                            accept(ContentType.Application.Json)
-                            url(endpoint.url)
+                        runCatching {
+                            measureTimedValue {
+                                client.request {
+                                    method = HttpMethod(endpoint.method.key)
+                                    accept(ContentType.Application.Json)
+                                    url(endpoint.url)
+                                }
+                            }
+                        }.onSuccess { timedValue ->
+                            DisplayOutput.statusLine(
+                                code = timedValue.value.status.value,
+                                description = timedValue.value.status.description,
+                                duration = timedValue.duration,
+                            )
+                            DisplayOutput.rawOutput(timedValue.value.bodyAsText())
+                        }.onFailure { error ->
+                            handleError(scriptFile, error)
                         }
-                        DisplayOutput.statusLine(result.status.value, result.status.description)
-                        DisplayOutput.rawOutput(result.bodyAsText())
                     }
             }
     }
-}
 
-fun handleError(file: File, exception: Throwable) {
-    when (exception) {
-        is ScriptEvaluationException -> DisplayOutput.scriptEvaluationError(file, exception)
-        else -> DisplayOutput.unhandledError(file, exception)
+    private fun handleError(file: File, exception: Throwable) {
+        when (exception) {
+            is ScriptEvaluationException -> DisplayOutput.scriptEvaluationError(file, exception)
+            is UnresolvedAddressException -> DisplayOutput.unresolvedHostError(exception)
+            else -> DisplayOutput.unhandledError(file, exception)
+        }
     }
 }

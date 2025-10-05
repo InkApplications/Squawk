@@ -4,6 +4,10 @@ import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
 import squawk.host.ScriptEvaluationException
 import java.io.File
+import java.nio.channels.UnresolvedAddressException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 object DisplayOutput
 {
@@ -32,8 +36,16 @@ object DisplayOutput
         println(text)
     }
 
-    fun statusLine(code: Int, description: String)
-    {
+    fun statusLine(
+        code: Int,
+        description: String,
+        duration: Duration,
+    ) {
+        val formattedDuration = when {
+            duration < 1.seconds -> "${duration.inWholeMilliseconds}ms"
+            duration < 1.minutes -> "${duration.inWholeSeconds}s"
+            else -> "${duration.inWholeMinutes}m ${(duration.inWholeSeconds % 60)}s"
+        }
         val codeStyle = when (code) {
             in 200..299 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.green)
             in 300..399 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.cyan)
@@ -41,7 +53,7 @@ object DisplayOutput
             in 500..599 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
             else -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
         }
-        println("> ${codeStyle(" $code ")} $description")
+        println("> ${codeStyle(" $code ")} $description in $formattedDuration")
     }
 
     fun scriptEvaluationError(
@@ -72,6 +84,16 @@ object DisplayOutput
                 println(this)
             }
         }
+    }
+
+    fun unresolvedHostError(
+        exception: UnresolvedAddressException,
+    ) {
+        val errorLabel = TextStyle(
+            bold = true,
+            color = TextColors.red,
+        )
+        println("${errorLabel("Network Error")}: Unresolved host address")
     }
 
     fun unhandledError(
