@@ -11,6 +11,11 @@ import kotlin.time.Duration.Companion.seconds
 
 object DisplayOutput
 {
+    private val errorLabel = TextStyle(
+        bold = true,
+        color = TextColors.red,
+    )
+
     fun endpointTitle(name: String)
     {
         val style = TextStyle(
@@ -60,10 +65,6 @@ object DisplayOutput
         file: File,
         exception: ScriptEvaluationException,
     ) {
-        val errorLabel = TextStyle(
-            bold = true,
-            color = TextColors.red,
-        )
         val locationStyle = TextStyle(
             color = TextColors.yellow,
         )
@@ -89,10 +90,6 @@ object DisplayOutput
     fun unresolvedHostError(
         exception: UnresolvedAddressException,
     ) {
-        val errorLabel = TextStyle(
-            bold = true,
-            color = TextColors.red,
-        )
         println("${errorLabel("Network Error")}: Unresolved host address")
     }
 
@@ -100,10 +97,6 @@ object DisplayOutput
         script: File,
         exception: Throwable,
     ) {
-        val errorLabel = TextStyle(
-            bold = true,
-            color = TextColors.red,
-        )
         println("${errorLabel("Unhandled Error")}: ${exception.message}")
         println("while attempting to run script: '${script.absolutePath}'")
         println(exception.stackTraceToString())
