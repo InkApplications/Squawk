@@ -6,12 +6,12 @@ import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.accept
-import io.ktor.client.request.get
+import io.ktor.client.request.request
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
 import kotlinx.coroutines.runBlocking
-import kotlin.script.experimental.api.isError
 import kotlin.script.experimental.api.valueOrThrow
 
 class SquawkCommand: CliktCommand()
@@ -26,10 +26,12 @@ class SquawkCommand: CliktCommand()
             .let { it as SquawkScript }
             .endpoints
             .forEach { endpoint ->
-                println(endpoint.name)
-                println("-".repeat(endpoint.name.length))
-                println("GET: ${endpoint.url}")
-                val result = client.get {
+                val name = endpoint.name ?: scriptFile.nameWithoutExtension
+                println(name)
+                println("-".repeat(name.length))
+                println("${endpoint.method.key}: ${endpoint.url}")
+                val result = client.request {
+                    method = HttpMethod(endpoint.method.key)
                     accept(ContentType.Application.Json)
                     url(endpoint.url)
                 }
