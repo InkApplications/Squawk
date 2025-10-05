@@ -1,4 +1,4 @@
-package squawk.cli
+package squawk.script
 
 @JvmInline
 value class Method(val key: String)

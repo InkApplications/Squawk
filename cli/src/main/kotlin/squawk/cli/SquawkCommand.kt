@@ -12,18 +12,14 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.runBlocking
-import kotlin.script.experimental.api.valueOrThrow
+import squawk.script.evaluateOrThrow
 
 class SquawkCommand: CliktCommand()
 {
     val scriptFile by argument(name = "config").file(mustExist = true, canBeDir = false, mustBeReadable = true)
     override fun run() = runBlocking {
         val client = HttpClient(CIO)
-        val result = SquawkScript.evalFile(scriptFile)
-        result.valueOrThrow()
-            .returnValue
-            .scriptInstance
-            .let { it as SquawkScript }
+        val result = evaluateOrThrow(scriptFile)
             .endpoints
             .forEach { endpoint ->
                 val name = endpoint.name ?: scriptFile.nameWithoutExtension

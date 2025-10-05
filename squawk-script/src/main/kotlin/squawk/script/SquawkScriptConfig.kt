@@ -1,4 +1,4 @@
-package squawk.cli
+package squawk.script
 
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.jvm.dependenciesFromCurrentContext
