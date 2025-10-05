@@ -1,5 +1,8 @@
 package squawk.cli
 
-fun main(args: Array<String>) {
-    println("Hello, World!")
+import com.github.ajalt.clikt.core.main
+
+fun main(args: Array<String>)
+{
+    SquawkCommand().main(args)
 }

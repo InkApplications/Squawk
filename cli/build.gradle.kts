@@ -10,4 +10,5 @@ application {
 
 dependencies {
     implementation(libs.kotlin.coroutines.core)
+    implementation(libs.clikt)
 }

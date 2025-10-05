@@ -57,6 +57,13 @@ module="io.ktor:ktor-client-content-negotiation"
 version.ref = "ktor"
 module="io.ktor:ktor-client-websockets"
 
+##
+# Misc
+##
+[libraries.clikt]
+version = "5.0.1"
+module = "com.github.ajalt.clikt:clikt"
+
 [bundles]
 ktor-client = [
     "ktor-client-core",
