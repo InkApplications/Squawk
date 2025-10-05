@@ -30,6 +30,18 @@ module = "org.jetbrains.kotlin:kotlin-serialization"
 version = "1.9.0"
 module = "org.jetbrains.kotlinx:kotlinx-serialization-json"
 
+[libraries.kotlin-scripting-common]
+version.ref = "kotlin"
+module = "org.jetbrains.kotlin:kotlin-scripting-common"
+
+[libraries.kotlin-scripting-jvm-core]
+version.ref = "kotlin"
+module = "org.jetbrains.kotlin:kotlin-scripting-jvm"
+
+[libraries.kotlin-scripting-jvm-host]
+version.ref = "kotlin"
+module = "org.jetbrains.kotlin:kotlin-scripting-jvm-host"
+
 ##
 # Ktor Libraries
 ##
