@@ -35,6 +35,7 @@ class SquawkCommand: CliktCommand()
                             accept(ContentType.Application.Json)
                             url(endpoint.url)
                         }
+                        DisplayOutput.statusLine(result.status.value, result.status.description)
                         DisplayOutput.rawOutput(result.bodyAsText())
                     }
             }

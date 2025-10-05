@@ -32,6 +32,18 @@ object DisplayOutput
         println(text)
     }
 
+    fun statusLine(code: Int, description: String)
+    {
+        val codeStyle = when (code) {
+            in 200..299 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.green)
+            in 300..399 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.cyan)
+            in 400..499 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.red)
+            in 500..599 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
+            else -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
+        }
+        println("> ${codeStyle(" $code ")} $description")
+    }
+
     fun scriptEvaluationError(
         file: File,
         exception: ScriptEvaluationException,
