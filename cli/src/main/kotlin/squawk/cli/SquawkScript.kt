@@ -14,6 +14,7 @@ import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTe
     fileExtension = "squawk.kts",
     compilationConfiguration = SquawkScriptConfig::class
 )
+@Suppress("unused")
 abstract class SquawkScript(
     val scriptFile: File,
 ) {
