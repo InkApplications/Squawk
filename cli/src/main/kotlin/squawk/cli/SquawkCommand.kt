@@ -16,22 +16,22 @@ import squawk.host.evaluateOrThrow
 
 class SquawkCommand: CliktCommand()
 {
-    val scriptFile by argument(name = "config").file(mustExist = true, canBeDir = false, mustBeReadable = true)
+    val scriptFile by argument(name = "config")
+        .file(mustExist = true, canBeDir = false, mustBeReadable = true)
     override fun run() = runBlocking {
         val client = HttpClient(CIO)
         val result = evaluateOrThrow(scriptFile)
             .endpoints
             .forEach { endpoint ->
                 val name = endpoint.name ?: scriptFile.nameWithoutExtension
-                println(name)
-                println("-".repeat(name.length))
-                println("${endpoint.method.key}: ${endpoint.url}")
+                DisplayOutput.endpointTitle(name)
+                DisplayOutput.requestUrl(endpoint.method.key, endpoint.url)
                 val result = client.request {
                     method = HttpMethod(endpoint.method.key)
                     accept(ContentType.Application.Json)
                     url(endpoint.url)
                 }
-                println(result.bodyAsText())
+                DisplayOutput.rawOutput(result.bodyAsText())
             }
     }
 }
