@@ -13,4 +13,6 @@ dependencies {
     implementation(libs.clikt)
     implementation(libs.kotlin.scripting.jvm.core)
     implementation(libs.kotlin.scripting.jvm.host)
+    implementation(libs.bundles.ktor.client)
+    implementation("org.slf4j:slf4j-nop:2.0.17")
 }

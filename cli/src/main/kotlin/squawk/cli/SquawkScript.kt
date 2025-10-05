@@ -18,12 +18,11 @@ import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTe
 abstract class SquawkScript(
     val scriptFile: File,
 ) {
+    internal var endpoints = mutableListOf<EndpointBuilder>()
+
     fun endpoint(builder: EndpointBuilder.() -> Unit)
     {
-        EndpointBuilder().apply(builder)
-            .run {
-                println("Endpoint: name='$name', url='$url'")
-            }
+        endpoints += EndpointBuilder().apply(builder)
     }
 
     companion object
