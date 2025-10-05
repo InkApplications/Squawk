@@ -4,5 +4,6 @@ class EndpointBuilder
 {
     var method: Method = Method.GET
     var name: String? = null
-    var url: String = ""
+    var description: String? = null
+    var url: String? = null
 }

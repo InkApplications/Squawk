@@ -3,6 +3,7 @@ package squawk.cli
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
 import squawk.host.ScriptEvaluationException
+import squawk.script.EndpointBuilder
 import java.io.File
 import java.nio.channels.UnresolvedAddressException
 import kotlin.time.Duration
@@ -15,6 +16,32 @@ object DisplayOutput
         bold = true,
         color = TextColors.red,
     )
+
+    fun title(text: String)
+    {
+        val style = TextStyle(
+            bold = true,
+        )
+        println(style(text))
+    }
+
+    fun endpointLabel(
+        label: String,
+        endpoint: EndpointBuilder
+    ) {
+        val keyStyle = TextStyle(
+            color = TextColors.green
+        )
+        val descriptionStyle = TextStyle(
+            color = TextColors.yellow,
+        )
+        val description = endpoint.description ?: endpoint.url
+        if (description != null) {
+            println("${keyStyle(label)} - ${descriptionStyle(description)}")
+        } else {
+            println(keyStyle(label))
+        }
+    }
 
     fun endpointTitle(name: String)
     {
