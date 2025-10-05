@@ -14,44 +14,51 @@ import io.ktor.http.HttpMethod
 import kotlinx.coroutines.runBlocking
 import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
+import squawk.script.EndpointBuilder
 import java.io.File
 import java.nio.channels.UnresolvedAddressException
 import kotlin.time.measureTimedValue
 
 class SquawkCommand: CliktCommand()
 {
-    val scriptFile by argument(name = "config")
+    private val scriptFile by argument(name = "config")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
-    override fun run() = runBlocking<Unit> {
-        val client = HttpClient(CIO)
-        runCatching { evaluateOrThrow(scriptFile) }
-            .onFailure { handleError(scriptFile, it) }
-            .onSuccess {
-                it.endpoints
-                    .forEach { endpoint ->
-                        val name = endpoint.name ?: scriptFile.nameWithoutExtension
-                        DisplayOutput.endpointTitle(name)
-                        DisplayOutput.requestUrl(endpoint.method.key, endpoint.url)
-                        runCatching {
-                            measureTimedValue {
-                                client.request {
-                                    method = HttpMethod(endpoint.method.key)
-                                    accept(ContentType.Application.Json)
-                                    url(endpoint.url)
-                                }
-                            }
-                        }.onSuccess { timedValue ->
-                            DisplayOutput.statusLine(
-                                code = timedValue.value.status.value,
-                                description = timedValue.value.status.description,
-                                duration = timedValue.duration,
-                            )
-                            DisplayOutput.rawOutput(timedValue.value.bodyAsText())
-                        }.onFailure { error ->
-                            handleError(scriptFile, error)
-                        }
+    private val client = HttpClient(CIO)
+
+    override fun run()
+    {
+        runBlocking {
+            runCatching { evaluateOrThrow(scriptFile) }
+                .onFailure { handleError(scriptFile, it) }
+                .onSuccess { it.endpoints.forEach { runRequest(it) } }
+        }
+    }
+
+    private suspend fun runRequest(endpoint: EndpointBuilder)
+    {
+        with(DisplayOutput) {
+            val name = endpoint.name ?: scriptFile.nameWithoutExtension
+            endpointTitle(name)
+            requestUrl(endpoint.method.key, endpoint.url)
+            runCatching {
+                measureTimedValue {
+                    client.request {
+                        method = HttpMethod(endpoint.method.key)
+                        accept(ContentType.Application.Json)
+                        url(endpoint.url)
                     }
+                }
+            }.onSuccess { timedValue ->
+                statusLine(
+                    code = timedValue.value.status.value,
+                    description = timedValue.value.status.description,
+                    duration = timedValue.duration,
+                )
+                rawOutput(timedValue.value.bodyAsText())
+            }.onFailure { error ->
+                handleError(scriptFile, error)
             }
+        }
     }
 
     private fun handleError(file: File, exception: Throwable) {
