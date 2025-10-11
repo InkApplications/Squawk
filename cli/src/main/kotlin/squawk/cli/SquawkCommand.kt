@@ -4,6 +4,8 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.arguments.optional
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -38,7 +40,7 @@ import kotlin.time.measureTimedValue
 
 class SquawkCommand: CliktCommand()
 {
-    private val scriptFile by argument(name = "config")
+    private val scriptFile by option("--config", "-c")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
         .default(File("api.squawk"))
     private val endpointArg by argument().optional()
