@@ -6,4 +6,5 @@ class EndpointBuilder
     var name: String? = null
     var description: String? = null
     var url: String? = null
+    var body: String? = null
 }

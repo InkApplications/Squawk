@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.request
+import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMethod
@@ -78,26 +79,27 @@ class SquawkCommand: CliktCommand()
             handleError(scriptFile, IllegalArgumentException("Endpoint missing URL"))
             return
         }
-            val name = endpoint.name ?: scriptFile.nameWithoutExtension
-            printEndpointTitle(name)
-            printRequestUrl(endpoint.method.key, endpoint.url!!)
-            runCatching {
-                measureTimedValue {
-                    client.request {
-                        method = HttpMethod(endpoint.method.key)
-                        url(urlString = endpoint.url!!)
-                    }
+        val name = endpoint.name ?: scriptFile.nameWithoutExtension
+        printEndpointTitle(name)
+        printRequestUrl(endpoint.method.key, endpoint.url!!)
+        runCatching {
+            measureTimedValue {
+                client.request {
+                    method = HttpMethod(endpoint.method.key)
+                    url(urlString = endpoint.url!!)
+                    setBody(endpoint.body)
                 }
-            }.onSuccess { timedValue ->
-                printStatus(
-                    code = timedValue.value.status.value,
-                    description = timedValue.value.status.description,
-                    duration = timedValue.duration,
-                )
-                rawOutput(timedValue.value.bodyAsText())
-            }.onFailure { error ->
-                handleError(scriptFile, error)
             }
+        }.onSuccess { timedValue ->
+            printStatus(
+                code = timedValue.value.status.value,
+                description = timedValue.value.status.description,
+                duration = timedValue.duration,
+            )
+            rawOutput(timedValue.value.bodyAsText())
+        }.onFailure { error ->
+            handleError(scriptFile, error)
+        }
     }
 
     private fun handleError(file: File, exception: Throwable) {
