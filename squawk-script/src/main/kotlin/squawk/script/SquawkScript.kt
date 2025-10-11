@@ -4,7 +4,7 @@ import java.io.File
 import kotlin.script.experimental.annotations.KotlinScript
 
 @KotlinScript(
-    fileExtension = "squawk.kts",
+    fileExtension = "squawk",
     compilationConfiguration = SquawkScriptConfig::class
 )
 @Suppress("unused")
