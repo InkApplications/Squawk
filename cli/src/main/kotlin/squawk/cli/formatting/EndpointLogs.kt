@@ -8,7 +8,7 @@ import kotlin.time.Duration.Companion.seconds
 
 fun printEndpointTitle(name: String)
 {
-    printProgress("endpoint: $name")
+    printProgress("Request: $name")
 }
 
 fun printRequestUrl(method: String, url: String)
@@ -18,9 +18,19 @@ fun printRequestUrl(method: String, url: String)
         underline = true,
         hyperlink = url,
     )
-    val methodStyle = TextStyle()
+    val methodStyle = TextStyle(
+        color = TextColors.green,
+    )
 
-    println("> ${methodStyle(method)}: ${urlStyle(url)}")
+    println("${methodStyle(method)}: ${urlStyle(url)}")
+}
+
+fun printRequestMeta(key: String, value: String)
+{
+    val keyStyle = TextStyle(
+        color = TextColors.yellow,
+    )
+    println("${keyStyle(key)}: ${value}")
 }
 
 fun printStatus(
@@ -40,10 +50,12 @@ fun printStatus(
         in 500..599 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
         else -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
     }
-    println("> ${codeStyle(" $code ")} $description in $formattedDuration")
+    println("${codeStyle(" $code ")} $description in $formattedDuration")
 }
 
 fun rawOutput(text: String)
 {
+    println("~~~~~~~~~~")
     println(text)
+    println("~~~~~~~~~~")
 }

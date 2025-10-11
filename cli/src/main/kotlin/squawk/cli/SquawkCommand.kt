@@ -11,6 +11,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMethod
+import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -21,6 +22,7 @@ import squawk.cli.formatting.printProgress
 import squawk.cli.formatting.rawOutput
 import squawk.cli.formatting.printRequestUrl
 import squawk.cli.formatting.printEvaluationError
+import squawk.cli.formatting.printRequestMeta
 import squawk.cli.formatting.printStatus
 import squawk.cli.formatting.printTitle
 import squawk.cli.formatting.printUnhandledError
@@ -87,16 +89,35 @@ class SquawkCommand: CliktCommand()
                 client.request {
                     method = HttpMethod(endpoint.method.key)
                     url(urlString = endpoint.url!!)
-                    setBody(endpoint.body)
+                    if (endpoint.body != null) {
+                        setBody(endpoint.body)
+                    }
+                    val headerData = endpoint.headers
+                        .groupBy { it.first }
+                        .mapValues { it.value.map { it.second } }
+                        .map { it.key to it.value }
+                        .toTypedArray()
+                    headerData.forEach { (key, values) ->
+                        values.forEach {
+                            printRequestMeta(key, it)
+                        }
+                    }
+                    headersOf(*headerData)
                 }
             }
         }.onSuccess { timedValue ->
+            printProgress("Response:")
+            rawOutput(timedValue.value.bodyAsText())
+            timedValue.value.headers.forEach { key, values ->
+                values.forEach {
+                    printRequestMeta(key, it)
+                }
+            }
             printStatus(
                 code = timedValue.value.status.value,
                 description = timedValue.value.status.description,
                 duration = timedValue.duration,
             )
-            rawOutput(timedValue.value.bodyAsText())
         }.onFailure { error ->
             handleError(scriptFile, error)
         }
