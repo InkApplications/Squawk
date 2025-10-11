@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
@@ -46,6 +47,7 @@ class SquawkCommand: CliktCommand()
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
         .default(File("api.squawk"))
     private val endpointArg by argument().optional()
+    private val list by option("--list", "-l").flag()
 
     private val client = HttpClient(CIO)
     private val requestScope = CoroutineScope(Dispatchers.IO)
@@ -57,7 +59,7 @@ class SquawkCommand: CliktCommand()
             runCatching { evaluateOrThrow(scriptFile) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
-                    if (endpointArg == null && script.endpoints.size > 1) {
+                    if (list || (endpointArg == null && script.endpoints.size > 1)) {
                         printTitle("Available endpoints:")
                         script.endpoints.canonicalNames.forEach {
                             val endpoint = script.endpoints[script.endpoints.canonicalNames.indexOf(it)]
