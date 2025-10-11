@@ -16,8 +16,8 @@ fun printEndpointLabel(
     )
     val description = endpoint.description ?: endpoint.url
     if (description != null) {
-        println("${keyStyle(label)} - ${descriptionStyle(description)}")
+        println("  ${keyStyle(label)} - ${descriptionStyle(description)}")
     } else {
-        println(keyStyle(label))
+        println("  ${keyStyle(label)}")
     }
 }
