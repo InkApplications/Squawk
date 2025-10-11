@@ -2,6 +2,7 @@ package squawk.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
@@ -39,6 +40,7 @@ class SquawkCommand: CliktCommand()
 {
     private val scriptFile by argument(name = "config")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
+        .default(File("api.squawk"))
     private val endpointArg by argument().optional()
 
     private val client = HttpClient(CIO)
