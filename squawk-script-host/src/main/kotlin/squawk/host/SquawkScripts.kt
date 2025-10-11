@@ -1,5 +1,6 @@
 package squawk.host
 
+import squawk.script.Evaluator
 import squawk.script.SquawkScript
 import java.io.File
 import kotlin.script.experimental.api.EvaluationResult
@@ -14,50 +15,55 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTemplate
 
-private fun evalFile(scriptFile: File): ResultWithDiagnostics<EvaluationResult>
-{
-    val source = scriptFile.toScriptSource()
+internal class ScriptEvaluator: Evaluator {
     val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<SquawkScript>()
-    val evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
-        constructorArgs(scriptFile)
+    val host = BasicJvmScriptingHost()
+    override fun evaluateFile(parent: SquawkScript?, file: File): SquawkScript {
+        return host.eval(
+            script = file.toScriptSource(),
+            compilationConfiguration = compilationConfiguration,
+            evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
+                constructorArgs(file, this@ScriptEvaluator, parent)
+            }
+        ).handleOrThrow()
     }
-    return BasicJvmScriptingHost().eval(
-        script = source,
-        compilationConfiguration = compilationConfiguration,
-        evaluationConfiguration = evaluationConfiguration
-    )
+
+    private fun ResultWithDiagnostics<EvaluationResult>.handleOrThrow(): SquawkScript
+    {
+        onFailure { result ->
+            throw result.reports
+                .filter { it.severity > ScriptDiagnostic.Severity.INFO }
+                .map {
+                    ScriptEvaluationException.ScriptError(
+                        message = it.message,
+                        startLine = it.location?.start?.let {
+                            ScriptEvaluationException.FileCoordinate(
+                                line = it.line,
+                                column = it.col,
+                            )
+                        },
+                        endLine = it.location?.end?.let {
+                            ScriptEvaluationException.FileCoordinate(
+                                line = it.line,
+                                column = it.col,
+                            )
+                        },
+                        exception = it.exception,
+                    )
+                }
+                .let { ScriptEvaluationException(it) }
+        }
+
+        return when (val returnValue = valueOrThrow().returnValue) {
+            is ResultValue.Error -> throw returnValue.error
+            is ResultValue.NotEvaluated -> throw IllegalStateException("Script was not evaluated")
+            else -> returnValue.scriptInstance as SquawkScript
+        }
+    }
 }
 
 fun evaluateOrThrow(result: File): SquawkScript
 {
-    val result = evalFile(result)
-    result.onFailure { result ->
-        throw result.reports
-            .filter { it.severity > ScriptDiagnostic.Severity.INFO }
-            .map {
-                ScriptEvaluationException.ScriptError(
-                    message = it.message,
-                    startLine = it.location?.start?.let {
-                        ScriptEvaluationException.FileCoordinate(
-                            line = it.line,
-                            column = it.col,
-                        )
-                    },
-                    endLine = it.location?.end?.let {
-                        ScriptEvaluationException.FileCoordinate(
-                            line = it.line,
-                            column = it.col,
-                        )
-                    },
-                    exception = it.exception,
-                )
-            }
-            .let { ScriptEvaluationException(it) }
-    }
-
-    return when (val returnValue = result.valueOrThrow().returnValue) {
-        is ResultValue.Error -> throw returnValue.error
-        is ResultValue.NotEvaluated -> throw IllegalStateException("Script was not evaluated")
-        else -> returnValue.scriptInstance as SquawkScript
-    }
+    val evaluator = ScriptEvaluator()
+    return evaluator.evaluateFile(null, result)
 }
