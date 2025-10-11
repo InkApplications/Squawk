@@ -6,16 +6,24 @@ import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.accept
 import io.ktor.client.request.request
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import squawk.cli.formatting.printEndpointLabel
+import squawk.cli.formatting.printEndpointTitle
+import squawk.cli.formatting.printProgress
+import squawk.cli.formatting.rawOutput
+import squawk.cli.formatting.printRequestUrl
+import squawk.cli.formatting.printEvaluationError
+import squawk.cli.formatting.printStatus
+import squawk.cli.formatting.printTitle
+import squawk.cli.formatting.printUnhandledError
+import squawk.cli.formatting.printUnresolvedHost
 import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
 import squawk.script.EndpointBuilder
@@ -36,15 +44,15 @@ class SquawkCommand: CliktCommand()
     override fun run()
     {
         runBlocking {
-            DisplayOutput.progress("Loading ${scriptFile.name}")
+            printProgress("Loading ${scriptFile.name}")
             runCatching { evaluateOrThrow(scriptFile) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
                     if (endpoint == null) {
-                        DisplayOutput.title("Available endpoints:")
+                        printTitle("Available endpoints:")
                         script.endpoints.canonicalNames.forEach {
                             val endpoint = script.endpoints[script.endpoints.canonicalNames.indexOf(it)]
-                            DisplayOutput.endpointLabel(it, endpoint)
+                            printEndpointLabel(it, endpoint)
                         }
                     } else {
                         script.endpoints.canonicalNames
@@ -70,10 +78,9 @@ class SquawkCommand: CliktCommand()
             handleError(scriptFile, IllegalArgumentException("Endpoint missing URL"))
             return
         }
-        with(DisplayOutput) {
             val name = endpoint.name ?: scriptFile.nameWithoutExtension
-            endpointTitle(name)
-            requestUrl(endpoint.method.key, endpoint.url!!)
+            printEndpointTitle(name)
+            printRequestUrl(endpoint.method.key, endpoint.url!!)
             runCatching {
                 measureTimedValue {
                     client.request {
@@ -82,7 +89,7 @@ class SquawkCommand: CliktCommand()
                     }
                 }
             }.onSuccess { timedValue ->
-                statusLine(
+                printStatus(
                     code = timedValue.value.status.value,
                     description = timedValue.value.status.description,
                     duration = timedValue.duration,
@@ -91,14 +98,13 @@ class SquawkCommand: CliktCommand()
             }.onFailure { error ->
                 handleError(scriptFile, error)
             }
-        }
     }
 
     private fun handleError(file: File, exception: Throwable) {
         when (exception) {
-            is ScriptEvaluationException -> DisplayOutput.scriptEvaluationError(file, exception)
-            is UnresolvedAddressException -> DisplayOutput.unresolvedHostError(exception)
-            else -> DisplayOutput.unhandledError(file, exception)
+            is ScriptEvaluationException -> printEvaluationError(file, exception)
+            is UnresolvedAddressException -> printUnresolvedHost(exception)
+            else -> printUnhandledError(file, exception)
         }
     }
 
