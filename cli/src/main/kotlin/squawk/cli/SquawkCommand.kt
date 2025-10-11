@@ -36,7 +36,7 @@ class SquawkCommand: CliktCommand()
 {
     private val scriptFile by argument(name = "config")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
-    private val endpoint by argument().optional()
+    private val endpointArg by argument().optional()
 
     private val client = HttpClient(CIO)
     private val requestScope = CoroutineScope(Dispatchers.IO)
@@ -48,7 +48,7 @@ class SquawkCommand: CliktCommand()
             runCatching { evaluateOrThrow(scriptFile) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
-                    if (endpoint == null) {
+                    if (endpointArg == null && script.endpoints.size > 1) {
                         printTitle("Available endpoints:")
                         script.endpoints.canonicalNames.forEach {
                             val endpoint = script.endpoints[script.endpoints.canonicalNames.indexOf(it)]
@@ -56,11 +56,11 @@ class SquawkCommand: CliktCommand()
                         }
                     } else {
                         script.endpoints.canonicalNames
-                            .find { it == endpoint }
+                            .find { (endpointArg == null && script.endpoints.size == 1) || it == endpointArg }
                             ?.let { script.endpoints[script.endpoints.canonicalNames.indexOf(it)] }
                             .let { endpoint ->
                                 if (endpoint == null) {
-                                    handleError(scriptFile, IllegalArgumentException("Unknown endpoint: $endpoint"))
+                                    handleError(scriptFile, IllegalArgumentException("Unknown endpoint: $endpointArg"))
                                 } else {
                                     requestScope.async {
                                         runRequest(endpoint)
