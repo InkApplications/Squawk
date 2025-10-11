@@ -43,12 +43,17 @@ object DisplayOutput
         }
     }
 
-    fun endpointTitle(name: String)
+    fun progress(message: String)
     {
         val style = TextStyle(
-            bold = true,
+            bold = true
         )
-        println("> " + style("endpoint: $name"))
+        println(style("> $message"))
+    }
+
+    fun endpointTitle(name: String)
+    {
+        progress("endpoint: $name")
     }
 
     fun requestUrl(method: String, url: String)

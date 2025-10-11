@@ -36,6 +36,7 @@ class SquawkCommand: CliktCommand()
     override fun run()
     {
         runBlocking {
+            DisplayOutput.progress("Loading ${scriptFile.name}")
             runCatching { evaluateOrThrow(scriptFile) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
