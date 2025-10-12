@@ -2,7 +2,6 @@ package squawk.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
@@ -35,6 +34,7 @@ import squawk.cli.formatting.printUnresolvedHost
 import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
 import squawk.script.EndpointBuilder
+import squawk.script.SquawkScript
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.nio.channels.UnresolvedAddressException
@@ -62,16 +62,18 @@ class SquawkCommand: CliktCommand()
             runCatching { evaluateOrThrow(scriptFile) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
+                    val names = script.scriptEndpoints
+                        .flatMap { (endpointScript, endpoints) -> endpoints.map { createCanonicalName(endpointScript, it) } }
                     if (list || (endpointArg == null && script.endpoints.size > 1)) {
                         printTitle("Available endpoints:")
-                        script.endpoints.canonicalNames.forEach {
-                            val endpoint = script.endpoints[script.endpoints.canonicalNames.indexOf(it)]
+                        names.forEach {
+                            val endpoint = script.endpoints[names.indexOf(it)]
                             printEndpointLabel(it, endpoint)
                         }
                     } else {
-                        script.endpoints.canonicalNames
+                        names
                             .find { (endpointArg == null && script.endpoints.size == 1) || it == endpointArg }
-                            ?.let { script.endpoints[script.endpoints.canonicalNames.indexOf(it)] }
+                            ?.let { script.endpoints[names.indexOf(it)] }
                             .let { endpoint ->
                                 if (endpoint == null) {
                                     handleError(scriptFile, IllegalArgumentException("Unknown endpoint: $endpointArg"))
@@ -142,16 +144,18 @@ class SquawkCommand: CliktCommand()
         }
     }
 
-    private val List<EndpointBuilder>.canonicalNames: List<String> get() {
-        return map { builder ->
-            if (builder.name != null) {
-                return@map builder.name!!.lowercase().replace(' ', '-')
-            }
-            val matchingMethods = filter { it.name == null && it.method == builder.method }
-            when {
-                matchingMethods.size == 1 || matchingMethods.indexOf(builder) == 0 -> builder.method.key.lowercase()
-                else -> "${builder.method.key.lowercase()}-${matchingMethods.indexOf(builder) + 1}"
-            }
+    private fun createCanonicalName(
+        script: SquawkScript,
+        endpoint: EndpointBuilder
+    ): String {
+        val prefix = script.namespace?.let { "$it:" }.orEmpty()
+        if (endpoint.name != null) {
+            return endpoint.name!!.lowercase().replace(' ', '-').let { "$prefix$it" }
         }
+        val matchingMethods = script.endpoints.filter { it.name == null && it.method == endpoint.method }
+        return when {
+            matchingMethods.size == 1 || matchingMethods.indexOf(endpoint) == 0 -> endpoint.method.key.lowercase()
+            else -> "${endpoint.method.key.lowercase()}-${matchingMethods.indexOf(endpoint) + 1}"
+        }.let { "$prefix$it" }
     }
 }

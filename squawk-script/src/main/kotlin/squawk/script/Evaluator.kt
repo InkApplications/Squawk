@@ -4,5 +4,5 @@ import java.io.File
 
 interface Evaluator
 {
-    fun evaluateFile(parent: SquawkScript?, file: File): SquawkScript
+    fun evaluateFile(file: File): SquawkScript
 }

@@ -11,17 +11,20 @@ import kotlin.script.experimental.annotations.KotlinScript
 abstract class SquawkScript(
     val scriptFile: File,
     private val evaluator: Evaluator,
-    val parent: SquawkScript? = null
 ) {
-    var endpoints = mutableListOf<EndpointBuilder>()
+    private var children: MutableList<SquawkScript> = mutableListOf()
+    private var localEndpoints = mutableListOf<EndpointBuilder>()
+    var namespace: String? = null
+    val endpoints: List<EndpointBuilder> get() {
+        return localEndpoints + children.flatMap { it.endpoints }
+    }
+    val scriptEndpoints: Map<SquawkScript, List<EndpointBuilder>> get() {
+        return (listOf(this) + children).associateWith { it.localEndpoints }
+    }
 
     fun endpoint(builder: EndpointBuilder.() -> Unit)
     {
-        if (parent != null) {
-            parent.endpoint(builder)
-            return
-        }
-        endpoints += EndpointBuilder().apply(builder)
+        localEndpoints += EndpointBuilder().apply(builder)
     }
 
     fun include(path: String)
@@ -31,6 +34,6 @@ abstract class SquawkScript(
             throw IllegalArgumentException("Included file does not exist: $file")
         }
 
-        evaluator.evaluateFile(this, file)
+        children += evaluator.evaluateFile(file)
     }
 }

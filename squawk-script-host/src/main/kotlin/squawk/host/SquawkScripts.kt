@@ -15,15 +15,18 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTemplate
 
-internal class ScriptEvaluator: Evaluator {
+private object ScriptEvaluator: Evaluator
+{
     val compilationConfiguration = createJvmCompilationConfigurationFromTemplate<SquawkScript>()
     val host = BasicJvmScriptingHost()
-    override fun evaluateFile(parent: SquawkScript?, file: File): SquawkScript {
+
+    override fun evaluateFile(file: File): SquawkScript
+    {
         return host.eval(
             script = file.toScriptSource(),
             compilationConfiguration = compilationConfiguration,
             evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
-                constructorArgs(file, this@ScriptEvaluator, parent)
+                constructorArgs(file, this@ScriptEvaluator)
             }
         ).handleOrThrow()
     }
@@ -64,6 +67,5 @@ internal class ScriptEvaluator: Evaluator {
 
 fun evaluateOrThrow(result: File): SquawkScript
 {
-    val evaluator = ScriptEvaluator()
-    return evaluator.evaluateFile(null, result)
+    return ScriptEvaluator.evaluateFile(result)
 }
