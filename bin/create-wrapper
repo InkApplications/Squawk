@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
+SRC_FILE="${PROJECT_DIR}/cli/src/main/bash/wrapper-template.sh"
+DISTRIBUTIONS="${PROJECT_DIR}/cli/build/distributions"
+DESTINATION="${DISTRIBUTIONS}/squawk-wrapper"
+VERSION=$1
+HASH=$2
+
+if [ -z "$VERSION" ] || [ -z "$HASH" ]; then
+    echo "Usage: $0 <VERSION> <HASH>"
+    exit 1
+fi
+
+mkdir -p "$DISTRIBUTIONS"
+sed -e "s/{{VERSION}}/$VERSION/g" -e "s/{{HASH}}/$HASH/g" "$SRC_FILE" > "$DESTINATION" || exit 1
+chmod +x "$DESTINATION"
