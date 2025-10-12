@@ -6,7 +6,7 @@ SHA256={{HASH}}
 INSTALL_DIR="$HOME/.local/share/squawk"
 SQUAWK_BIN="$HOME/.local/share/squawk/${VERSION}/bin/squawk"
 
-if [ ! -f "SQUAWK_BIN" ]; then
+if [ ! -f "$SQUAWK_BIN" ]; then
     echo "Downloading squawk..."
     TEMP_FOLDER=$(mktemp -d)
     ZIP_FILE="${TEMP_FOLDER}/squawk.zip"
@@ -21,4 +21,4 @@ if [ ! -f "SQUAWK_BIN" ]; then
     mv "${INSTALL_DIR}/squawk-${VERSION}" "${INSTALL_DIR}/${VERSION}"
 fi
 
-"SQUAWK_BIN" $@
+"$SQUAWK_BIN" $@
