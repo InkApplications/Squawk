@@ -3,7 +3,7 @@
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/.."
 SRC_FILE="${PROJECT_DIR}/cli/src/main/bash/wrapper-template.sh"
 DISTRIBUTIONS="${PROJECT_DIR}/cli/build/distributions"
-DESTINATION="${DISTRIBUTIONS}/squawk-wrapper"
+DESTINATION="${DISTRIBUTIONS}/squawk"
 VERSION=$1
 HASH=$2
 
