@@ -5,7 +5,6 @@ on:
 jobs:
     build-cli:
         name: CLI Tools
-        needs: [tests]
         runs-on: ubuntu-latest
         steps:
             -
@@ -19,7 +18,7 @@ jobs:
                     distribution: temurin
             -
                 name: Create CLI Distribution
-                run: bin/gradlew cli:distZip -Pversion=${{ github.ref_name }}
+                run: bin/gradlew check cli:distZip -Pversion=${{ github.ref_name }}
             -
                 name: Create Wrapper
                 run: bin/create-wrapper ${{ github.ref_name }} $(sha256sum cli/build/distributions/squawk-${{ github.ref_name }}.zip | cut -d' ' -f1)
