@@ -12,10 +12,14 @@ import kotlin.script.experimental.annotations.KotlinScript
 abstract class SquawkScript(
     val scriptFile: File,
     private val evaluator: Evaluator,
+    private val parent: SquawkScript?,
 ) {
     private var children: MutableList<SquawkScript> = mutableListOf()
     private var localEndpoints = mutableListOf<EndpointBuilder>()
     private var localProperties = mutableMapOf<String, String>()
+    private val allProperties: Map<String, String> get() {
+        return parent?.allProperties.orEmpty() + localProperties
+    }
     var namespace: String? = null
     val endpoints: List<EndpointBuilder> get() {
         return localEndpoints + children.flatMap { it.endpoints }
@@ -36,7 +40,7 @@ abstract class SquawkScript(
             throw IllegalArgumentException("Included file does not exist: $file")
         }
 
-        children += evaluator.evaluateFile(file)
+        children += evaluator.evaluateFile(file, this)
     }
 
     fun loadProperties(path: String, optional: Boolean = false)
@@ -58,13 +62,13 @@ abstract class SquawkScript(
 
     fun property(key: String, default: String? = null): String
     {
-        return localProperties[key]
+        return allProperties[key]
             ?: default
             ?: throw IllegalArgumentException("Property not found: $key")
     }
 
     fun hasProperty(key: String): Boolean
     {
-        return localProperties.containsKey(key)
+        return allProperties.containsKey(key)
     }
 }
