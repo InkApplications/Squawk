@@ -82,3 +82,23 @@ Run with:
 
     ./squawk samples:get
 
+Properties
+----------
+
+Property files can be included from a script:
+
+```
+loadProperties("environment.properties")
+```
+
+or overridden with the command line:
+
+    ./squawk --properties environment.properties
+
+Once loaded, they can be used in any script:
+
+```kotlin
+endpoint {
+    url = "${property("baseurl")}/widgets"
+}
+```
