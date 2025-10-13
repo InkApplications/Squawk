@@ -1,0 +1,13 @@
+namespace = "github"
+
+endpoint {
+    name = "fetch-user"
+    description = "Fetch GitHub info for a user"
+    url = "https://api.github.com/users/${property("github-username")}"
+}
+
+endpoint {
+    name = "fetch-repos"
+    description = "Fetch GitHub repos for a user"
+    url = "https://api.github.com/users/${property("github-username")}/repos?per_page=${property("limit", "100")}"
+}

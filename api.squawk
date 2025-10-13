@@ -1,0 +1,5 @@
+loadProperties("api.properties")
+loadProperties("api.local.properties", optional = true)
+
+include("samples/example.squawk")
+include("samples/github.squawk")
