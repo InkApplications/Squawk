@@ -17,12 +17,15 @@ import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import io.ktor.http.headersOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import squawk.cli.formatting.printEndpointLabel
 import squawk.cli.formatting.printEndpointTitle
 import squawk.cli.formatting.printProgress
@@ -68,6 +71,7 @@ class SquawkCommand: CliktCommand()
 
     private val client = HttpClient(CIO)
     private val requestScope = CoroutineScope(Dispatchers.IO)
+    private val jsonPrinter = Json { prettyPrint = true }
 
     override fun run()
     {
@@ -134,7 +138,15 @@ class SquawkCommand: CliktCommand()
             }
         }.onSuccess { timedValue ->
             printProgress("Response:")
-            rawOutput(timedValue.value.bodyAsText())
+            val rawOut = timedValue.value.bodyAsText()
+            val formatted = when(timedValue.value.contentType()?.withoutParameters()) {
+                ContentType.Application.Json -> runCatching {
+                    jsonPrinter.parseToJsonElement(rawOut)
+                        .let { jsonPrinter.encodeToString(it) }
+                }.getOrNull()
+                else -> null
+            }
+            rawOutput(formatted ?: rawOut)
             timedValue.value.headers.forEach { key, values ->
                 values.forEach {
                     printRequestMeta(key, it)
