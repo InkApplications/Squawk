@@ -37,7 +37,7 @@ abstract class SquawkScript(
 
     fun endpoint(builder: EndpointBuilder.() -> Unit)
     {
-        localEndpoints += EndpointBuilder().apply(builder)
+        localEndpoints += EndpointBuilder(allProperties).apply(builder)
     }
 
     fun include(path: String)
@@ -70,17 +70,5 @@ abstract class SquawkScript(
             .apply { file.inputStream().use { load(it) } }
             .map { (key, value) -> key.toString() to value.toString() }
             .toMap()
-    }
-
-    fun property(key: String, default: String? = null): String
-    {
-        return allProperties[key]
-            ?: default
-            ?: throw IllegalArgumentException("Property not found: $key")
-    }
-
-    fun hasProperty(key: String): Boolean
-    {
-        return allProperties.containsKey(key)
     }
 }

@@ -5,8 +5,9 @@ import kotlin.io.encoding.Base64
 private const val UserAgent = "User-Agent"
 private const val Auth = "Authorization"
 
-class EndpointBuilder
-{
+class EndpointBuilder(
+    private val properties: Map<String, String>,
+): PropertyContext {
     var method: Method = Method.GET
     var name: String? = null
     var description: String? = null
@@ -38,5 +39,17 @@ class EndpointBuilder
 
     fun bearerAuth(token: String) {
         header(Auth, "Bearer $token")
+    }
+
+    override fun property(key: String, default: String?): String
+    {
+        return properties[key]
+            ?: default
+            ?: throw IllegalArgumentException("Property not found: $key")
+    }
+
+    override fun hasProperty(key: String): Boolean
+    {
+        return properties.containsKey(key)
     }
 }
