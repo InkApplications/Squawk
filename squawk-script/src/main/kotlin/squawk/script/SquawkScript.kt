@@ -1,6 +1,7 @@
 package squawk.script
 
 import java.io.File
+import java.util.Properties
 import kotlin.script.experimental.annotations.KotlinScript
 
 @KotlinScript(
@@ -14,6 +15,7 @@ abstract class SquawkScript(
 ) {
     private var children: MutableList<SquawkScript> = mutableListOf()
     private var localEndpoints = mutableListOf<EndpointBuilder>()
+    private var localProperties = mutableMapOf<String, String>()
     var namespace: String? = null
     val endpoints: List<EndpointBuilder> get() {
         return localEndpoints + children.flatMap { it.endpoints }
@@ -35,5 +37,34 @@ abstract class SquawkScript(
         }
 
         children += evaluator.evaluateFile(file)
+    }
+
+    fun loadProperties(path: String, optional: Boolean = false)
+    {
+        val file = File(scriptFile.parentFile, path).canonicalFile
+
+        if (optional && !file.exists()) {
+            return
+        }
+        if (!file.exists()) {
+            throw IllegalArgumentException("Properties file does not exist: $file")
+        }
+
+        localProperties += Properties()
+            .apply { file.inputStream().use { load(it) } }
+            .map { (key, value) -> key.toString() to value.toString() }
+            .toMap()
+    }
+
+    fun property(key: String, default: String? = null): String
+    {
+        return localProperties[key]
+            ?: default
+            ?: throw IllegalArgumentException("Property not found: $key")
+    }
+
+    fun hasProperty(key: String): Boolean
+    {
+        return localProperties.containsKey(key)
     }
 }
