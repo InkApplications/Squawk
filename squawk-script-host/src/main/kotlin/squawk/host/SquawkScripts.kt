@@ -23,13 +23,14 @@ private object ScriptEvaluator: Evaluator
     override fun evaluateFile(
         file: File,
         parent: SquawkScript?,
-        propertyFiles: List<File>
+        propertyFiles: List<File>,
+        properties: Map<String, String>,
     ): SquawkScript {
         return host.eval(
             script = file.toScriptSource(),
             compilationConfiguration = compilationConfiguration,
             evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
-                constructorArgs(file, this@ScriptEvaluator, parent, propertyFiles)
+                constructorArgs(file, this@ScriptEvaluator, parent, propertyFiles, properties)
             }
         ).handleOrThrow()
     }
@@ -68,7 +69,10 @@ private object ScriptEvaluator: Evaluator
     }
 }
 
-fun evaluateOrThrow(result: File, propertyFiles: List<File>): SquawkScript
-{
-    return ScriptEvaluator.evaluateFile(result, null, propertyFiles)
+fun evaluateOrThrow(
+    result: File,
+    propertyFiles: List<File>,
+    properties: Map<String, String>,
+): SquawkScript {
+    return ScriptEvaluator.evaluateFile(result, null, propertyFiles, properties)
 }

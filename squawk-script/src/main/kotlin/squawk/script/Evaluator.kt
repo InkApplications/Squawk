@@ -7,6 +7,7 @@ interface Evaluator
     fun evaluateFile(
         file: File,
         parent: SquawkScript?,
-        propertyFiles: List<File>
+        propertyFiles: List<File>,
+        properties: Map<String, String>,
     ): SquawkScript
 }

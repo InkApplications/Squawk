@@ -3,11 +3,13 @@ package squawk.cli
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
+import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -52,9 +54,16 @@ class SquawkCommand: CliktCommand()
     private val list by option("--list", "-l")
         .help("List the available endpoints by name and description.")
         .flag()
-    private val properties by option("--properties", "--props")
-        .help("Specify a properties file to load from. This will take precedent over any properties imported by the configuration.")
+    private val propertyFiles by option("--properties", "--props")
+        .help("Specify a properties file to load from. This will take precedent over any properties imported by the configuration (allows multiple)")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
+        .multiple()
+    private val properties by option("--property", "--prop")
+        .help("Override a single property value. This argument has the highest precedence. Specified as key=value (allows multiple)")
+        .convert {
+            require(it.count { it == '=' } == 1) { "Properties must be in the form key=value" }
+            it.split('=').let { (key, value) -> key to value }
+        }
         .multiple()
 
     private val client = HttpClient(CIO)
@@ -64,7 +73,7 @@ class SquawkCommand: CliktCommand()
     {
         runBlocking {
             printProgress("Loading ${scriptFile.name}")
-            runCatching { evaluateOrThrow(scriptFile, properties) }
+            runCatching { evaluateOrThrow(scriptFile, propertyFiles, properties.toMap()) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
                     val names = script.scriptEndpoints
