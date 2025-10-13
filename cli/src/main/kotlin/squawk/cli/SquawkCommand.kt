@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.help
+import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
@@ -51,6 +52,10 @@ class SquawkCommand: CliktCommand()
     private val list by option("--list", "-l")
         .help("List the available endpoints by name and description.")
         .flag()
+    private val properties by option("--properties", "--props")
+        .help("Specify a properties file to load from. This will take precedent over any properties imported by the configuration.")
+        .file(mustExist = true, canBeDir = false, mustBeReadable = true)
+        .multiple()
 
     private val client = HttpClient(CIO)
     private val requestScope = CoroutineScope(Dispatchers.IO)
@@ -59,7 +64,7 @@ class SquawkCommand: CliktCommand()
     {
         runBlocking {
             printProgress("Loading ${scriptFile.name}")
-            runCatching { evaluateOrThrow(scriptFile) }
+            runCatching { evaluateOrThrow(scriptFile, properties) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
                     val names = script.scriptEndpoints

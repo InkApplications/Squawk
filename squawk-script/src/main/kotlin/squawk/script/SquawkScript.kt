@@ -13,12 +13,20 @@ abstract class SquawkScript(
     val scriptFile: File,
     private val evaluator: Evaluator,
     private val parent: SquawkScript?,
+    private val argPropertyFiles: List<File> = emptyList(),
 ) {
     private var children: MutableList<SquawkScript> = mutableListOf()
+    private val argProperties: Map<String, String> by lazy {
+        argPropertyFiles.flatMap { file ->
+            Properties()
+                .apply { file.inputStream().use { load(it) } }
+                .map { (key, value) -> key.toString() to value.toString() }
+        }.toMap()
+    }
     private var localEndpoints = mutableListOf<EndpointBuilder>()
     private var localProperties = mutableMapOf<String, String>()
     private val allProperties: Map<String, String> get() {
-        return parent?.allProperties.orEmpty() + localProperties
+        return parent?.allProperties.orEmpty() + localProperties + argProperties
     }
     var namespace: String? = null
     val endpoints: List<EndpointBuilder> get() {
@@ -40,7 +48,7 @@ abstract class SquawkScript(
             throw IllegalArgumentException("Included file does not exist: $file")
         }
 
-        children += evaluator.evaluateFile(file, this)
+        children += evaluator.evaluateFile(file, this, argPropertyFiles)
     }
 
     fun loadProperties(path: String, optional: Boolean = false)
