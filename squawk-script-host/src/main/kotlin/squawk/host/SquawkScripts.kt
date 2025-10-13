@@ -1,6 +1,7 @@
 package squawk.host
 
 import squawk.script.Evaluator
+import squawk.script.RunConfiguration
 import squawk.script.SquawkScript
 import java.io.File
 import kotlin.script.experimental.api.EvaluationResult
@@ -21,16 +22,14 @@ private object ScriptEvaluator: Evaluator
     val host = BasicJvmScriptingHost()
 
     override fun evaluateFile(
-        file: File,
+        runConfiguration: RunConfiguration,
         parent: SquawkScript?,
-        propertyFiles: List<File>,
-        properties: Map<String, String>,
     ): SquawkScript {
         return host.eval(
-            script = file.toScriptSource(),
+            script = runConfiguration.target.toScriptSource(),
             compilationConfiguration = compilationConfiguration,
             evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
-                constructorArgs(file, this@ScriptEvaluator, parent, propertyFiles, properties)
+                constructorArgs(runConfiguration, this@ScriptEvaluator, parent)
             }
         ).handleOrThrow()
     }
@@ -70,9 +69,7 @@ private object ScriptEvaluator: Evaluator
 }
 
 fun evaluateOrThrow(
-    result: File,
-    propertyFiles: List<File>,
-    properties: Map<String, String>,
+    runConfiguration: RunConfiguration,
 ): SquawkScript {
-    return ScriptEvaluator.evaluateFile(result, null, propertyFiles, properties)
+    return ScriptEvaluator.evaluateFile(runConfiguration, null)
 }

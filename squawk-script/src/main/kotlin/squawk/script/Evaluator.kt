@@ -1,13 +1,9 @@
 package squawk.script
 
-import java.io.File
-
 interface Evaluator
 {
     fun evaluateFile(
-        file: File,
+        runConfiguration: RunConfiguration,
         parent: SquawkScript?,
-        propertyFiles: List<File>,
-        properties: Map<String, String>,
     ): SquawkScript
 }

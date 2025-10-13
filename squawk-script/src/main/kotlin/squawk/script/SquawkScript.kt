@@ -10,19 +10,17 @@ import kotlin.script.experimental.annotations.KotlinScript
 )
 @Suppress("unused")
 abstract class SquawkScript(
-    val scriptFile: File,
+    private val runConfiguration: RunConfiguration,
     private val evaluator: Evaluator,
     private val parent: SquawkScript?,
-    private val argPropertyFiles: List<File> = emptyList(),
-    private val argProperties: Map<String, String> = emptyMap(),
 ) {
     private var children: MutableList<SquawkScript> = mutableListOf()
     private val overrides: Map<String, String> by lazy {
-        argPropertyFiles.flatMap { file ->
+        runConfiguration.propertyFiles.flatMap { file ->
             Properties()
                 .apply { file.inputStream().use { load(it) } }
                 .map { (key, value) -> key.toString() to value.toString() }
-        }.toMap() + argProperties
+        }.toMap() + runConfiguration.properties
     }
     private var localEndpoints = mutableListOf<EndpointBuilder>()
     private var localProperties = mutableMapOf<String, String>()
@@ -44,17 +42,22 @@ abstract class SquawkScript(
 
     fun include(path: String)
     {
-        val file = File(scriptFile.parentFile, path).canonicalFile
+        val file = File(runConfiguration.target.parentFile, path).canonicalFile
         if (!file.exists()) {
             throw IllegalArgumentException("Included file does not exist: $file")
         }
 
-        children += evaluator.evaluateFile(file, this, argPropertyFiles, argProperties)
+        children += evaluator.evaluateFile(
+            runConfiguration = runConfiguration.copy(
+                target = file,
+            ),
+            parent = this,
+        )
     }
 
     fun loadProperties(path: String, optional: Boolean = false)
     {
-        val file = File(scriptFile.parentFile, path).canonicalFile
+        val file = File(runConfiguration.target.parentFile, path).canonicalFile
 
         if (optional && !file.exists()) {
             return

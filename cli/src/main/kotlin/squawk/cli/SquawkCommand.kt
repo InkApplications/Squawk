@@ -40,6 +40,7 @@ import squawk.cli.formatting.printUnresolvedHost
 import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
 import squawk.script.EndpointBuilder
+import squawk.script.RunConfiguration
 import squawk.script.SquawkScript
 import java.io.File
 import java.lang.IllegalArgumentException
@@ -77,7 +78,12 @@ class SquawkCommand: CliktCommand()
     {
         runBlocking {
             printProgress("Loading ${scriptFile.name}")
-            runCatching { evaluateOrThrow(scriptFile, propertyFiles, properties.toMap()) }
+            val runConfiguration = RunConfiguration(
+                target = scriptFile,
+                propertyFiles = propertyFiles,
+                properties = properties.toMap(),
+            )
+            runCatching { evaluateOrThrow(runConfiguration) }
                 .onFailure { handleError(scriptFile, it) }
                 .onSuccess { script ->
                     val names = script.scriptEndpoints
