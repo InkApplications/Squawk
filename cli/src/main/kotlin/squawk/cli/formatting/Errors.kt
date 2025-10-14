@@ -57,7 +57,7 @@ fun printUnhandledError(
 fun printConfigurationError(
     exception: ConfigurationError,
 ) {
-    println("${errorLabel("Configuration Error")} in '${exception.file.name}': ${exception.message}")
+    println("${errorLabel("Configuration Error")}: ${exception.message} in '${exception.file.name}'")
 }
 
 fun printBadEndpointArgument(
