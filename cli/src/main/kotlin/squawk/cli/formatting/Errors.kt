@@ -4,7 +4,6 @@ import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
 import squawk.host.ScriptEvaluationException
 import squawk.script.ConfigurationError
-import squawk.script.PropertiesFileNotFound
 import java.io.File
 import java.nio.channels.UnresolvedAddressException
 

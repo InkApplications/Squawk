@@ -10,7 +10,7 @@ import kotlin.script.experimental.annotations.KotlinScript
 )
 @Suppress("unused")
 abstract class SquawkScript(
-    private val runConfiguration: RunConfiguration,
+    val runConfiguration: RunConfiguration,
     private val evaluator: Evaluator,
     private val parent: SquawkScript?,
 ) {

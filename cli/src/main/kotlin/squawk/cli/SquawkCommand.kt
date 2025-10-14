@@ -45,7 +45,6 @@ import squawk.script.EndpointBuilder
 import squawk.script.RunConfiguration
 import squawk.script.SquawkScript
 import java.io.File
-import java.lang.IllegalArgumentException
 import java.nio.channels.UnresolvedAddressException
 import kotlin.time.measureTimedValue
 
@@ -104,8 +103,11 @@ class SquawkCommand: CliktCommand()
                                 if (endpoint == null) {
                                     printBadEndpointArgument(endpointArg ?: "<empty>")
                                 } else {
+                                    val definingScript = script.scriptEndpoints.entries
+                                        .single { it.value.contains(endpoint) }
+                                        .key
                                     requestScope.async {
-                                        runRequest(endpoint)
+                                        runRequest(endpoint, definingScript)
                                     }.await()
                                 }
                             }
@@ -114,10 +116,13 @@ class SquawkCommand: CliktCommand()
         }
     }
 
-    private suspend fun runRequest(endpoint: EndpointBuilder)
+    private suspend fun runRequest(endpoint: EndpointBuilder, definingScript: SquawkScript)
     {
         if (endpoint.url == null) {
-            handleError(scriptFile, IllegalArgumentException("Endpoint missing URL"))
+            handleError(scriptFile, ConfigurationError(
+                file = definingScript.runConfiguration.target,
+                message = "No URL specified for endpoint '${endpointArg}'"
+            ))
             return
         }
         val name = endpoint.name ?: scriptFile.nameWithoutExtension
