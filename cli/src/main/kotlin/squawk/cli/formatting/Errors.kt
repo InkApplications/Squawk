@@ -59,3 +59,9 @@ fun printConfigurationError(
 ) {
     println("${errorLabel("Configuration Error")} in '${exception.file.name}': ${exception.message}")
 }
+
+fun printBadEndpointArgument(
+    value: String,
+) {
+    println("${errorLabel("Endpoint not found")}: $value")
+}

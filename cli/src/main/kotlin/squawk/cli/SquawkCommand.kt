@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import squawk.cli.formatting.printBadEndpointArgument
 import squawk.cli.formatting.printEndpointLabel
 import squawk.cli.formatting.printEndpointTitle
 import squawk.cli.formatting.printProgress
@@ -101,7 +102,7 @@ class SquawkCommand: CliktCommand()
                             ?.let { script.endpoints[names.indexOf(it)] }
                             .let { endpoint ->
                                 if (endpoint == null) {
-                                    handleError(scriptFile, IllegalArgumentException("Unknown endpoint: $endpointArg"))
+                                    printBadEndpointArgument(endpointArg ?: "<empty>")
                                 } else {
                                     requestScope.async {
                                         runRequest(endpoint)
