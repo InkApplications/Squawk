@@ -9,7 +9,6 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -32,6 +31,7 @@ import squawk.cli.formatting.printProgress
 import squawk.cli.formatting.rawOutput
 import squawk.cli.formatting.printRequestUrl
 import squawk.cli.formatting.printEvaluationError
+import squawk.cli.formatting.printConfigurationError
 import squawk.cli.formatting.printRequestMeta
 import squawk.cli.formatting.printStatus
 import squawk.cli.formatting.printTitle
@@ -39,6 +39,7 @@ import squawk.cli.formatting.printUnhandledError
 import squawk.cli.formatting.printUnresolvedHost
 import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
+import squawk.script.ConfigurationError
 import squawk.script.EndpointBuilder
 import squawk.script.RunConfiguration
 import squawk.script.SquawkScript
@@ -172,6 +173,7 @@ class SquawkCommand: CliktCommand()
         when (exception) {
             is ScriptEvaluationException -> printEvaluationError(file, exception)
             is UnresolvedAddressException -> printUnresolvedHost(exception)
+            is ConfigurationError -> printConfigurationError(exception)
             else -> printUnhandledError(file, exception)
         }
     }

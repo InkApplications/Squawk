@@ -3,6 +3,8 @@ package squawk.cli.formatting
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
 import squawk.host.ScriptEvaluationException
+import squawk.script.ConfigurationError
+import squawk.script.PropertiesFileNotFound
 import java.io.File
 import java.nio.channels.UnresolvedAddressException
 
@@ -50,4 +52,10 @@ fun printUnhandledError(
     println("${errorLabel("Unhandled Error")}: ${exception.message}")
     println("while attempting to run script: '${script.absolutePath}'")
     println(exception.stackTraceToString())
+}
+
+fun printConfigurationError(
+    exception: ConfigurationError,
+) {
+    println("${errorLabel("Configuration Error")} in '${exception.file.name}': ${exception.message}")
 }

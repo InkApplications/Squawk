@@ -63,7 +63,7 @@ abstract class SquawkScript(
             return
         }
         if (!file.exists()) {
-            throw IllegalArgumentException("Properties file does not exist: $file")
+            throw PropertiesFileNotFound(runConfiguration.target, path)
         }
 
         localProperties += Properties()
