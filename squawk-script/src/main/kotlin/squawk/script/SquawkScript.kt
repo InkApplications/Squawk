@@ -44,15 +44,20 @@ abstract class SquawkScript(
     {
         val file = File(runConfiguration.target.parentFile, path).canonicalFile
         if (!file.exists()) {
-            throw IllegalArgumentException("Included file does not exist: $file")
+            throw IncludedFileNotFound(path, runConfiguration.target)
         }
 
-        children += evaluator.evaluateFile(
-            runConfiguration = runConfiguration.copy(
-                target = file,
-            ),
-            parent = this,
-        )
+        try {
+            children += evaluator.evaluateFile(
+                runConfiguration = runConfiguration.copy(
+                    target = file,
+                ),
+                parent = this,
+            )
+        } catch (e: ConfigurationError) {
+            if (e.context == null) throw e.withContext(file)
+            else throw e
+        }
     }
 
     fun loadProperties(path: String, optional: Boolean = false)
@@ -63,7 +68,7 @@ abstract class SquawkScript(
             return
         }
         if (!file.exists()) {
-            throw PropertiesFileNotFound(runConfiguration.target, path)
+            throw PropertiesFileNotFound(path, runConfiguration.target)
         }
 
         localProperties += Properties()

@@ -120,7 +120,7 @@ class SquawkCommand: CliktCommand()
     {
         if (endpoint.url == null) {
             handleError(scriptFile, ConfigurationError(
-                file = definingScript.runConfiguration.target,
+                context = definingScript.runConfiguration.target,
                 message = "No URL specified for endpoint '${endpointArg}'"
             ))
             return

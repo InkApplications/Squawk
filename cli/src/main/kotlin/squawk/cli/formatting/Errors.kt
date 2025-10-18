@@ -56,7 +56,8 @@ fun printUnhandledError(
 fun printConfigurationError(
     exception: ConfigurationError,
 ) {
-    println("${errorLabel("Configuration Error")}: ${exception.message} in '${exception.file.name}'")
+    val contextString = exception.context?.name?.let { " in '$it'" }
+    println("${errorLabel("Configuration Error")}: ${exception.message}$contextString")
 }
 
 fun printBadEndpointArgument(

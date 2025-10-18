@@ -6,6 +6,10 @@ import java.io.File
  * Script configuration contains an invalid configuration
  */
 open class ConfigurationError(
-    val file: File,
-    message: String
-): IllegalArgumentException(message)
+    override val message: String,
+    val context: File? = null
+): IllegalArgumentException(message) {
+    open fun withContext(context: File): ConfigurationError {
+        return ConfigurationError(message, context)
+    }
+}

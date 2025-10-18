@@ -45,7 +45,7 @@ class EndpointBuilder(
     {
         return properties[key]
             ?: default
-            ?: throw IllegalArgumentException("Property not found: $key")
+            ?: throw PropertyNotFound(key)
     }
 
     override fun hasProperty(key: String): Boolean
