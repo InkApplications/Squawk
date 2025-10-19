@@ -74,6 +74,9 @@ class SquawkCommand: CliktCommand()
             it.split('=').let { (key, value) -> key to value }
         }
         .multiple()
+    private val noCache by option("--no-cache")
+        .help("Disable script caching for this run.")
+        .flag()
 
     private val client = HttpClient(CIO)
     private val requestScope = CoroutineScope(Dispatchers.IO)
@@ -89,9 +92,10 @@ class SquawkCommand: CliktCommand()
                 propertyFiles = propertyFiles,
                 properties = properties.toMap(),
             )
-            val cache = scriptCache.getCache(runConfiguration)?.takeIf {
-                it.children.all { it.descriptor.isValid() }
-            }
+            val cache = if (noCache) null else scriptCache.getCache(runConfiguration)
+                ?.takeIf {
+                    it.children.all { it.descriptor.isValid() }
+                }
 
             val evaluationResult = cache ?: run {
                 printProgress("Compiling ${scriptFile.name}")
