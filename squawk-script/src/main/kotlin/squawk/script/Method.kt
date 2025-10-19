@@ -1,6 +1,9 @@
 package squawk.script
 
+import kotlinx.serialization.Serializable
+
 @JvmInline
+@Serializable
 value class Method(val key: String)
 {
     companion object

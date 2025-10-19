@@ -1,9 +1,13 @@
 package squawk.script
 
-import java.io.File
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class RunConfiguration(
-    val target: File,
-    val propertyFiles: List<File>,
-    val properties: Map<String, String>,
-)
+    val target: FileDescriptor,
+    val propertyFiles: List<FileDescriptor>,
+    val properties: PropertyBag,
+) {
+    val schemaVersion: Int = 1
+}
+

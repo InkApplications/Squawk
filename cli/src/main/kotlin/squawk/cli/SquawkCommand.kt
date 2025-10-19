@@ -42,8 +42,11 @@ import squawk.host.ScriptEvaluationException
 import squawk.host.evaluateOrThrow
 import squawk.script.ConfigurationError
 import squawk.script.EndpointBuilder
+import squawk.script.FileDescriptor
 import squawk.script.RunConfiguration
-import squawk.script.SquawkScript
+import squawk.script.ScriptEvaluationResult
+import squawk.script.cache.ScriptCacheRepository
+import squawk.script.loadDescriptor
 import java.io.File
 import java.nio.channels.UnresolvedAddressException
 import kotlin.time.measureTimedValue
@@ -62,6 +65,7 @@ class SquawkCommand: CliktCommand()
     private val propertyFiles by option("--properties", "--props")
         .help("Specify a properties file to load from. This will take precedent over any properties imported by the configuration (allows multiple)")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true)
+        .convert { it.loadDescriptor() }
         .multiple()
     private val properties by option("--property", "--prop")
         .help("Override a single property value. This argument has the highest precedence. Specified as key=value (allows multiple)")
@@ -74,53 +78,64 @@ class SquawkCommand: CliktCommand()
     private val client = HttpClient(CIO)
     private val requestScope = CoroutineScope(Dispatchers.IO)
     private val jsonPrinter = Json { prettyPrint = true }
+    private val scriptCache = ScriptCacheRepository()
 
     override fun run()
     {
         runBlocking {
-            printProgress("Loading ${scriptFile.name}")
+            printProgress("Loading")
             val runConfiguration = RunConfiguration(
-                target = scriptFile,
+                target = scriptFile.loadDescriptor(),
                 propertyFiles = propertyFiles,
                 properties = properties.toMap(),
             )
-            runCatching { evaluateOrThrow(runConfiguration) }
-                .onFailure { handleError(scriptFile, it) }
-                .onSuccess { script ->
-                    val names = script.scriptEndpoints
-                        .flatMap { (endpointScript, endpoints) -> endpoints.map { createCanonicalName(endpointScript, it) } }
-                    if (list || (endpointArg == null && script.endpoints.size > 1)) {
-                        printTitle("Available endpoints:")
-                        names.forEach {
-                            val endpoint = script.endpoints[names.indexOf(it)]
-                            printEndpointLabel(it, endpoint)
-                        }
-                    } else {
-                        names
-                            .find { (endpointArg == null && script.endpoints.size == 1) || it == endpointArg }
-                            ?.let { script.endpoints[names.indexOf(it)] }
-                            .let { endpoint ->
-                                if (endpoint == null) {
-                                    printBadEndpointArgument(endpointArg ?: "<empty>")
-                                } else {
-                                    val definingScript = script.scriptEndpoints.entries
-                                        .single { it.value.contains(endpoint) }
-                                        .key
-                                    requestScope.async {
-                                        runRequest(endpoint, definingScript)
-                                    }.await()
-                                }
-                            }
-                    }
+            val cache = scriptCache.getCache(runConfiguration)?.takeIf {
+                it.children.all { it.descriptor.isValid() }
+            }
+
+            val evaluationResult = cache ?: run {
+                printProgress("Compiling ${scriptFile.name}")
+                runCatching { evaluateOrThrow(runConfiguration) }
+                    .onFailure { handleError(scriptFile, it); return@runBlocking  }
+                    .getOrThrow()
+                    .toScriptEvaluationResult()
+                    .also { scriptCache.putCache(runConfiguration, it) }
+            }
+
+            val names = evaluationResult.allEndpointResults
+                .flatMap { (endpointScript, endpoints) -> endpoints.map { createCanonicalName(endpointScript, it) } }
+            val allEndpoints = evaluationResult.allEndpointResults
+                .flatMap { it.second }
+            if (list || (endpointArg == null && evaluationResult.allEndpointResults.size > 1)) {
+                printTitle("Available endpoints:")
+                names.forEach {
+                    val endpoint = allEndpoints[names.indexOf(it)]
+                    printEndpointLabel(it, endpoint)
                 }
+            } else {
+                names.find { (endpointArg == null && evaluationResult.allEndpointResults.size == 1) || it == endpointArg }
+                    ?.let { allEndpoints[names.indexOf(it)] }
+                    .let { endpoint ->
+                        if (endpoint == null) {
+                            printBadEndpointArgument(endpointArg ?: "<empty>")
+                        } else {
+                            val definingScript = evaluationResult.allEndpointResults
+                                .single { it.second.contains(endpoint) }
+                                .first
+                            requestScope.async {
+                                runRequest(endpoint, definingScript.descriptor)
+                            }.await()
+                        }
+                    }
+            }
         }
     }
 
-    private suspend fun runRequest(endpoint: EndpointBuilder, definingScript: SquawkScript)
+    private suspend fun runRequest(endpoint: EndpointBuilder, definingScript: FileDescriptor)
     {
         if (endpoint.url == null) {
             handleError(scriptFile, ConfigurationError(
-                context = definingScript.runConfiguration.target,
+                context = definingScript.file,
                 message = "No URL specified for endpoint '${endpointArg}'"
             ))
             return
@@ -185,14 +200,14 @@ class SquawkCommand: CliktCommand()
     }
 
     private fun createCanonicalName(
-        script: SquawkScript,
+        script: ScriptEvaluationResult,
         endpoint: EndpointBuilder
     ): String {
         val prefix = script.namespace?.let { "$it:" }.orEmpty()
         if (endpoint.name != null) {
             return endpoint.name!!.lowercase().replace(' ', '-').let { "$prefix$it" }
         }
-        val matchingMethods = script.endpoints.filter { it.name == null && it.method == endpoint.method }
+        val matchingMethods = script.endpointResults.filter { it.name == null && it.method == endpoint.method }
         return when {
             matchingMethods.size == 1 || matchingMethods.indexOf(endpoint) == 0 -> endpoint.method.key.lowercase()
             else -> "${endpoint.method.key.lowercase()}-${matchingMethods.indexOf(endpoint) + 1}"

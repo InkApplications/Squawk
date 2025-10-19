@@ -3,7 +3,6 @@ package squawk.host
 import squawk.script.Evaluator
 import squawk.script.RunConfiguration
 import squawk.script.SquawkScript
-import java.io.File
 import kotlin.script.experimental.api.EvaluationResult
 import kotlin.script.experimental.api.ResultValue
 import kotlin.script.experimental.api.ResultWithDiagnostics
@@ -25,13 +24,15 @@ private object ScriptEvaluator: Evaluator
         runConfiguration: RunConfiguration,
         parent: SquawkScript?,
     ): SquawkScript {
-        return host.eval(
-            script = runConfiguration.target.toScriptSource(),
+        val script = host.eval(
+            script = runConfiguration.target.file.toScriptSource(),
             compilationConfiguration = compilationConfiguration,
             evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
                 constructorArgs(runConfiguration, this@ScriptEvaluator, parent)
             }
         ).handleOrThrow()
+
+        return script
     }
 
     private fun ResultWithDiagnostics<EvaluationResult>.handleOrThrow(): SquawkScript

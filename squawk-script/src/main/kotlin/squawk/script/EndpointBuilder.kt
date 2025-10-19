@@ -1,10 +1,12 @@
 package squawk.script
 
+import kotlinx.serialization.Serializable
 import kotlin.io.encoding.Base64
 
 private const val UserAgent = "User-Agent"
 private const val Auth = "Authorization"
 
+@Serializable
 class EndpointBuilder(
     private val properties: Map<String, String>,
 ): PropertyContext {

@@ -4,7 +4,8 @@ import java.io.File
 import java.util.Properties
 import kotlin.script.experimental.annotations.KotlinScript
 
-@KotlinScript(
+@KotlinScript
+    (
     fileExtension = "squawk",
     compilationConfiguration = SquawkScriptConfig::class
 )
@@ -16,11 +17,13 @@ abstract class SquawkScript(
 ) {
     private var children: MutableList<SquawkScript> = mutableListOf()
     private val overrides: Map<String, String> by lazy {
-        runConfiguration.propertyFiles.flatMap { file ->
-            Properties()
-                .apply { file.inputStream().use { load(it) } }
-                .map { (key, value) -> key.toString() to value.toString() }
-        }.toMap() + runConfiguration.properties
+        runConfiguration.propertyFiles
+            .map { it.file }
+            .flatMap { file ->
+                Properties()
+                    .apply { file.inputStream().use { load(it) } }
+                    .map { (key, value) -> key.toString() to value.toString() }
+            }.toMap() + runConfiguration.properties
     }
     private var localEndpoints = mutableListOf<EndpointBuilder>()
     private var localProperties = mutableMapOf<String, String>()
@@ -35,6 +38,16 @@ abstract class SquawkScript(
         return (listOf(this) + children).associateWith { it.localEndpoints }
     }
 
+    fun toScriptEvaluationResult(): ScriptEvaluationResult
+    {
+        return ScriptEvaluationResult(
+            descriptor = runConfiguration.target,
+            namespace = namespace,
+            endpointResults = localEndpoints,
+            children = children.map { it.toScriptEvaluationResult() }
+        )
+    }
+
     fun endpoint(builder: EndpointBuilder.() -> Unit)
     {
         localEndpoints += EndpointBuilder(allProperties).apply(builder)
@@ -42,15 +55,15 @@ abstract class SquawkScript(
 
     fun include(path: String)
     {
-        val file = File(runConfiguration.target.parentFile, path).canonicalFile
+        val file = File(runConfiguration.target.file.parentFile, path).canonicalFile
         if (!file.exists()) {
-            throw IncludedFileNotFound(path, runConfiguration.target)
+            throw IncludedFileNotFound(path, runConfiguration.target.file)
         }
 
         try {
             children += evaluator.evaluateFile(
                 runConfiguration = runConfiguration.copy(
-                    target = file,
+                    target = file.loadDescriptor(),
                 ),
                 parent = this,
             )
@@ -62,13 +75,13 @@ abstract class SquawkScript(
 
     fun loadProperties(path: String, optional: Boolean = false)
     {
-        val file = File(runConfiguration.target.parentFile, path).canonicalFile
+        val file = File(runConfiguration.target.file.parentFile, path).canonicalFile
 
         if (optional && !file.exists()) {
             return
         }
         if (!file.exists()) {
-            throw PropertiesFileNotFound(path, runConfiguration.target)
+            throw PropertiesFileNotFound(path, runConfiguration.target.file)
         }
 
         localProperties += Properties()
