@@ -14,4 +14,5 @@ dependencies {
     implementation(libs.bundles.ktor.client)
     implementation(projects.squawkScriptHost)
     implementation("org.slf4j:slf4j-nop:2.0.17")
+    testImplementation(libs.kotlin.test.core)
 }

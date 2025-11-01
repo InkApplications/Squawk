@@ -1,6 +1,7 @@
 package squawk.script
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 data class ScriptEvaluationResult(
@@ -9,11 +10,11 @@ data class ScriptEvaluationResult(
     val children: List<ScriptEvaluationResult>,
     val namespace: String?,
 ) {
-    val allEndpointResults: List<Pair<ScriptEvaluationResult, List<EndpointBuilder>>> get() {
-        val parentEntry = this to endpointResults
-        val childrenEntries = children.flatMap { it.allEndpointResults }
-            .map { (childResult, endpoints) -> childResult to endpoints }
-
-        return listOf(parentEntry) + childrenEntries
-    }
+    @Transient
+    val allEndpointResults: List<Pair<ScriptEvaluationResult, List<EndpointBuilder>>> =
+        listOf(this to endpointResults)
+        .plus(
+            children.flatMap { it.allEndpointResults }
+                .map { (childResult, endpoints) -> childResult to endpoints }
+        )
 }

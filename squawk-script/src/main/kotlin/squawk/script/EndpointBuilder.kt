@@ -7,18 +7,17 @@ private const val UserAgent = "User-Agent"
 private const val Auth = "Authorization"
 
 @Serializable
-class EndpointBuilder(
+data class EndpointBuilder(
     private val properties: Map<String, String>,
-): PropertyContext {
-    var method: Method = Method.GET
-    var name: String? = null
-    var description: String? = null
-    var url: String? = null
-    var body: String? = null
+    var method: Method = Method.GET,
+    var name: String? = null,
+    var description: String? = null,
+    var url: String? = null,
+    var body: String? = null,
     val headers: MutableList<Pair<String, String>> = mutableListOf(
         UserAgent to "Squawk/1.0",
-    )
-
+    ),
+): PropertyContext {
     fun header(key: String, value: String)
     {
         headers += key to value

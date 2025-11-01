@@ -44,7 +44,6 @@ import squawk.script.ConfigurationError
 import squawk.script.EndpointBuilder
 import squawk.script.FileDescriptor
 import squawk.script.RunConfiguration
-import squawk.script.ScriptEvaluationResult
 import squawk.script.cache.ScriptCacheRepository
 import squawk.script.loadDescriptor
 import java.io.File
@@ -106,19 +105,18 @@ class SquawkCommand: CliktCommand()
                     .also { scriptCache.putCache(runConfiguration, it) }
             }
 
-            val names = evaluationResult.allEndpointResults
-                .flatMap { (endpointScript, endpoints) -> endpoints.map { createCanonicalName(endpointScript, it) } }
+            val labels = EndpointLabels(evaluationResult)
             val allEndpoints = evaluationResult.allEndpointResults
                 .flatMap { it.second }
             if (list || (endpointArg == null && evaluationResult.allEndpointResults.size > 1)) {
                 printTitle("Available endpoints:")
-                names.forEach {
-                    val endpoint = allEndpoints[names.indexOf(it)]
+                labels.names.forEach {
+                    val endpoint = allEndpoints[labels.names.indexOf(it)]
                     printEndpointLabel(it, endpoint)
                 }
             } else {
-                names.find { (endpointArg == null && evaluationResult.allEndpointResults.size == 1) || it == endpointArg }
-                    ?.let { allEndpoints[names.indexOf(it)] }
+                labels.names.find { (endpointArg == null && evaluationResult.allEndpointResults.size == 1) || it == endpointArg }
+                    ?.let { allEndpoints[labels.names.indexOf(it)] }
                     .let { endpoint ->
                         if (endpoint == null) {
                             printBadEndpointArgument(endpointArg ?: "<empty>")
@@ -201,20 +199,5 @@ class SquawkCommand: CliktCommand()
             is ConfigurationError -> printConfigurationError(exception)
             else -> printUnhandledError(file, exception)
         }
-    }
-
-    private fun createCanonicalName(
-        script: ScriptEvaluationResult,
-        endpoint: EndpointBuilder
-    ): String {
-        val prefix = script.namespace?.let { "$it:" }.orEmpty()
-        if (endpoint.name != null) {
-            return endpoint.name!!.lowercase().replace(' ', '-').let { "$prefix$it" }
-        }
-        val matchingMethods = script.endpointResults.filter { it.name == null && it.method == endpoint.method }
-        return when {
-            matchingMethods.size == 1 || matchingMethods.indexOf(endpoint) == 0 -> endpoint.method.key.lowercase()
-            else -> "${endpoint.method.key.lowercase()}-${matchingMethods.indexOf(endpoint) + 1}"
-        }.let { "$prefix$it" }
     }
 }
