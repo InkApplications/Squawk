@@ -4,7 +4,7 @@ import squawk.script.EndpointBuilder
 import squawk.script.ScriptEvaluationResult
 
 class EndpointLabels(
-    result: ScriptEvaluationResult
+    private val result: ScriptEvaluationResult
 ) {
     val names = result.allEndpointResults
         .flatMap { (endpointScript, endpoints) ->
@@ -19,7 +19,9 @@ class EndpointLabels(
         if (endpoint.name != null) {
             return endpoint.name!!.lowercase().replace(' ', '-').let { "$prefix$it" }
         }
-        val matchingMethods = script.endpointResults.filter { it.name == null && it.method == endpoint.method }
+        val matchingMethods = result.allEndpointResults
+            .flatMap { it.second }
+            .filter { it.name == null && it.method == endpoint.method }
         val duplicateIndex = matchingMethods.indexOfFirst { it === endpoint }
             .takeIf { it != -1 }
             ?: throw IllegalStateException("Endpoint not in method list")

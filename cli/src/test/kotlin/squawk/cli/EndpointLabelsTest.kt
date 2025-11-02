@@ -96,4 +96,28 @@ class EndpointLabelsTest
         assertEquals("get", labels.names[0], "Namespace is prepended to endpoint with default")
         assertEquals("foo:get", labels.names[1], "Only child script gets namespace label.")
     }
+
+    @Test
+    fun childDuplicates()
+    {
+        val script = StubEvaluationResult.copy(
+            children = listOf(
+                StubEvaluationResult.copy(
+                    endpointResults = listOf(
+                        StubEndpoint.copy(),
+                    ),
+                ),
+                StubEvaluationResult.copy(
+                    endpointResults = listOf(
+                        StubEndpoint.copy(),
+                    ),
+                ),
+            )
+        )
+        val labels = EndpointLabels(script)
+
+        assertEquals(2, labels.names.size, "One label per endpoint.")
+        assertEquals("get", labels.names[0], "Namespace is prepended to endpoint with default")
+        assertEquals("get-2", labels.names[1], "Namespace is prepended to numbered endpoint.")
+    }
 }
