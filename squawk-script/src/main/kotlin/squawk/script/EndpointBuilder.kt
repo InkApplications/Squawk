@@ -13,4 +13,13 @@ data class EndpointBuilder(
     ),
     var method: Method = Method.GET,
     var body: String? = null,
-): RequestBuilder, PropertyContext by properties.toPropertyContext()
+    private var dynamics: Boolean = false,
+): RequestBuilder, PropertyContext by properties.toPropertyContext() {
+    override val hasDynamics: Boolean get() = dynamics
+
+    override fun compute(computation: () -> Unit)
+    {
+        dynamics = true
+        computation()
+    }
+}

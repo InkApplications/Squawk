@@ -140,8 +140,17 @@ class SquawkCommand: CliktCommand()
                             val definingScript = evaluationResult.allRequestBuilders
                                 .single { it.second.contains(endpoint) }
                                 .first
+                            val recompiledEndpoint = if (cache != null && endpoint.hasDynamics) {
+                                printProgress("Recompiling ${definingScript.configuration.target.file.name} for handlers")
+                                val index = definingScript.requestBuilders.indexOf(endpoint)
+                                val handlerCompile = runCatching { evaluateOrThrow(definingScript.configuration) }
+                                    .onFailure { handleError(scriptFile, it); return@runBlocking  }
+                                    .getOrThrow()
+                                    .toScriptEvaluationResult()
+                                handlerCompile.requestBuilders[index]
+                            } else null
                             requestScope.async {
-                                runRequest(endpoint, definingScript)
+                                runRequest(recompiledEndpoint ?: endpoint, definingScript)
                             }.await()
                         }
                     }
@@ -171,25 +180,6 @@ class SquawkCommand: CliktCommand()
         printEndpointTitle(name)
         printRequestUrl("websocket", url)
 
-        val compiledScript = if (socket.hasDynamics) {
-            printProgress("Compiling ${scriptFile.name} for handlers")
-            val handlerCompile = runCatching { evaluateOrThrow(definingScript.configuration) }
-                .onFailure { handleError(scriptFile, it); return@runRequest  }
-                .getOrThrow()
-                .toScriptEvaluationResult()
-            handlerCompile.allRequestBuilders
-                .flatMap { it.second }
-                .filterIsInstance<WebsocketBuilder>()
-                .find { it == socket }
-                ?: run {
-                    handleError(scriptFile, ConfigurationError(
-                        context = definingScript.configuration.target.file,
-                        message = "Unable to find websocket handlers in compiled script for endpoint '${endpointArg}'"
-                    ))
-                    return
-                }
-        } else null
-
         runCatching {
             measureTimedValue {
                 client.webSocket(
@@ -204,7 +194,7 @@ class SquawkCommand: CliktCommand()
                     }
                 ) {
                     printSocketOpen()
-                    compiledScript?.onConnect?.invoke(
+                    socket.onConnect?.invoke(
                         OnConnectContext(
                             onSend = {
                                 printSocketSendFrame(it)
@@ -215,7 +205,7 @@ class SquawkCommand: CliktCommand()
                     incoming.consumeAsFlow().collect {
                         val message = it.data.decodeToString()
                         printSocketReceiveFrame(message)
-                        compiledScript?.onMessage?.invoke(
+                        socket.onMessage?.invoke(
                             OnMessageContext(
                                 message = message,
                                 onSend = {

@@ -18,7 +18,7 @@ data class WebsocketBuilder(
     var onConnect: (suspend OnConnectContext.() -> Unit)? = null
     @Transient
     var onMessage: (suspend OnMessageContext.() -> Unit)? = null
-    val hasDynamics: Boolean get() = dynamics
+    override val hasDynamics: Boolean get() = dynamics
 
     fun onConnect(action: suspend OnConnectContext.() -> Unit)
     {
@@ -30,5 +30,11 @@ data class WebsocketBuilder(
     {
         dynamics = true
         onMessage = action
+    }
+
+    override fun compute(computation: () -> Unit)
+    {
+        dynamics = true
+        computation()
     }
 }

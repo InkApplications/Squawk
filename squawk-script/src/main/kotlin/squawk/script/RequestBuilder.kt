@@ -11,6 +11,9 @@ sealed interface RequestBuilder
     var description: String?
     var url: String?
     val headers: MutableList<Pair<String, String>>
+    val hasDynamics: Boolean
+
+    fun compute(computation: () -> Unit)
 }
 
 fun RequestBuilder.header(key: String, value: String) {
