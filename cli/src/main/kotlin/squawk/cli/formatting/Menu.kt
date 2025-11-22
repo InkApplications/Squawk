@@ -2,11 +2,11 @@ package squawk.cli.formatting
 
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
-import squawk.script.EndpointBuilder
+import squawk.script.RequestBuilder
 
 fun printEndpointLabel(
     label: String,
-    endpoint: EndpointBuilder
+    endpoint: RequestBuilder
 ) {
     val keyStyle = TextStyle(
         color = TextColors.green

@@ -12,6 +12,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
@@ -20,9 +22,11 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import io.ktor.http.headersOf
+import io.ktor.websocket.send
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import squawk.cli.formatting.printBadEndpointArgument
@@ -34,6 +38,10 @@ import squawk.cli.formatting.printRequestUrl
 import squawk.cli.formatting.printEvaluationError
 import squawk.cli.formatting.printConfigurationError
 import squawk.cli.formatting.printRequestMeta
+import squawk.cli.formatting.printSocketClosed
+import squawk.cli.formatting.printSocketOpen
+import squawk.cli.formatting.printSocketReceiveFrame
+import squawk.cli.formatting.printSocketSendFrame
 import squawk.cli.formatting.printStatus
 import squawk.cli.formatting.printTitle
 import squawk.cli.formatting.printUnhandledError
@@ -43,7 +51,12 @@ import squawk.host.evaluateOrThrow
 import squawk.script.ConfigurationError
 import squawk.script.EndpointBuilder
 import squawk.script.FileDescriptor
+import squawk.script.OnConnectContext
+import squawk.script.OnMessageContext
+import squawk.script.RequestBuilder
 import squawk.script.RunConfiguration
+import squawk.script.ScriptEvaluationResult
+import squawk.script.WebsocketBuilder
 import squawk.script.cache.ScriptCacheRepository
 import squawk.script.loadDescriptor
 import java.io.File
@@ -77,7 +90,9 @@ class SquawkCommand: CliktCommand()
         .help("Disable script caching for this run.")
         .flag()
 
-    private val client = HttpClient(CIO)
+    private val client = HttpClient(CIO) {
+        install(WebSockets)
+    }
     private val requestScope = CoroutineScope(Dispatchers.IO)
     private val jsonPrinter = Json { prettyPrint = true }
     private val scriptCache = ScriptCacheRepository()
@@ -90,10 +105,11 @@ class SquawkCommand: CliktCommand()
                 target = scriptFile.loadDescriptor(),
                 propertyFiles = propertyFiles,
                 properties = properties.toMap(),
+                parentProperties = emptyMap(),
             )
             val cache = if (noCache) null else scriptCache.getCache(runConfiguration)
                 ?.takeIf {
-                    it.children.all { it.descriptor.isValid() }
+                    it.children.all { it.configuration.target.isValid() }
                 }
 
             val evaluationResult = cache ?: run {
@@ -106,30 +122,115 @@ class SquawkCommand: CliktCommand()
             }
 
             val labels = EndpointLabels(evaluationResult)
-            val allEndpoints = evaluationResult.allEndpointResults
+            val allEndpoints = evaluationResult.allRequestBuilders
                 .flatMap { it.second }
-            if (list || (endpointArg == null && evaluationResult.allEndpointResults.size > 1)) {
+            if (list || (endpointArg == null && evaluationResult.allRequestBuilders.size > 1)) {
                 printTitle("Available endpoints:")
                 labels.names.forEach {
                     val endpoint = allEndpoints[labels.names.indexOf(it)]
                     printEndpointLabel(it, endpoint)
                 }
             } else {
-                labels.names.find { (endpointArg == null && evaluationResult.allEndpointResults.size == 1) || it == endpointArg }
+                labels.names.find { (endpointArg == null && evaluationResult.allRequestBuilders.size == 1) || it == endpointArg }
                     ?.let { allEndpoints[labels.names.indexOf(it)] }
                     .let { endpoint ->
                         if (endpoint == null) {
                             printBadEndpointArgument(endpointArg ?: "<empty>")
                         } else {
-                            val definingScript = evaluationResult.allEndpointResults
+                            val definingScript = evaluationResult.allRequestBuilders
                                 .single { it.second.contains(endpoint) }
                                 .first
                             requestScope.async {
-                                runRequest(endpoint, definingScript.descriptor)
+                                runRequest(endpoint, definingScript)
                             }.await()
                         }
                     }
             }
+        }
+    }
+
+    private suspend fun runRequest(request: RequestBuilder, definingScript: ScriptEvaluationResult)
+    {
+        when (request) {
+            is EndpointBuilder -> runRequest(request, definingScript.configuration.target)
+            is WebsocketBuilder -> runRequest(request, definingScript)
+        }
+    }
+
+    private suspend fun runRequest(socket: WebsocketBuilder, definingScript: ScriptEvaluationResult)
+    {
+        val url = socket.url
+        if (url == null) {
+            handleError(scriptFile, ConfigurationError(
+                context = definingScript.configuration.target.file,
+                message = "No URL specified for endpoint '${endpointArg}'"
+            ))
+            return
+        }
+        val name = socket.name ?: scriptFile.nameWithoutExtension
+        printEndpointTitle(name)
+        printRequestUrl("websocket", url)
+
+        val compiledScript = if (socket.hasDynamics) {
+            printProgress("Compiling ${scriptFile.name} for handlers")
+            val handlerCompile = runCatching { evaluateOrThrow(definingScript.configuration) }
+                .onFailure { handleError(scriptFile, it); return@runRequest  }
+                .getOrThrow()
+                .toScriptEvaluationResult()
+            handlerCompile.allRequestBuilders
+                .flatMap { it.second }
+                .filterIsInstance<WebsocketBuilder>()
+                .find { it == socket }
+                ?: run {
+                    handleError(scriptFile, ConfigurationError(
+                        context = definingScript.configuration.target.file,
+                        message = "Unable to find websocket handlers in compiled script for endpoint '${endpointArg}'"
+                    ))
+                    return
+                }
+        } else null
+
+        runCatching {
+            measureTimedValue {
+                client.webSocket(
+                    urlString = url,
+                    request = {
+                        val headerData = socket.headers
+                            .groupBy { it.first }
+                            .mapValues { it.value.map { it.second } }
+                            .map { it.key to it.value }
+                            .toTypedArray()
+                        headersOf(*headerData)
+                    }
+                ) {
+                    printSocketOpen()
+                    compiledScript?.onConnect?.invoke(
+                        OnConnectContext(
+                            onSend = {
+                                printSocketSendFrame(it)
+                                send(it)
+                            },
+                        )
+                    )
+                    incoming.consumeAsFlow().collect {
+                        val message = it.data.decodeToString()
+                        printSocketReceiveFrame(message)
+                        compiledScript?.onMessage?.invoke(
+                            OnMessageContext(
+                                message = message,
+                                onSend = {
+                                    printSocketSendFrame(it)
+                                    send(it)
+                                },
+                            )
+                        )
+                    }
+                }
+            }
+        }.onSuccess { timedValue ->
+            printSocketClosed(timedValue.duration)
+        }.onFailure { error ->
+            handleError(scriptFile, error)
         }
     }
 

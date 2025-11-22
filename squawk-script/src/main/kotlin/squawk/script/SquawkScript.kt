@@ -13,7 +13,6 @@ import kotlin.script.experimental.annotations.KotlinScript
 abstract class SquawkScript(
     val runConfiguration: RunConfiguration,
     private val evaluator: Evaluator,
-    private val parent: SquawkScript?,
 ) {
     private var children: MutableList<SquawkScript> = mutableListOf()
     private val overrides: Map<String, String> by lazy {
@@ -25,32 +24,31 @@ abstract class SquawkScript(
                     .map { (key, value) -> key.toString() to value.toString() }
             }.toMap() + runConfiguration.properties
     }
-    private var localEndpoints = mutableListOf<EndpointBuilder>()
+    private var requestBuilders = mutableListOf<RequestBuilder>()
     private var localProperties = mutableMapOf<String, String>()
     private val allProperties: Map<String, String> get() {
-        return parent?.allProperties.orEmpty() + localProperties + overrides
+        return runConfiguration.parentProperties + localProperties + overrides
     }
     var namespace: String? = null
-    val endpoints: List<EndpointBuilder> get() {
-        return localEndpoints + children.flatMap { it.endpoints }
-    }
-    val scriptEndpoints: Map<SquawkScript, List<EndpointBuilder>> get() {
-        return (listOf(this) + children).associateWith { it.localEndpoints }
-    }
 
     fun toScriptEvaluationResult(): ScriptEvaluationResult
     {
         return ScriptEvaluationResult(
-            descriptor = runConfiguration.target,
+            configuration = runConfiguration,
             namespace = namespace,
-            endpointResults = localEndpoints,
+            requestBuilders = requestBuilders,
             children = children.map { it.toScriptEvaluationResult() }
         )
     }
 
     fun endpoint(builder: EndpointBuilder.() -> Unit)
     {
-        localEndpoints += EndpointBuilder(allProperties).apply(builder)
+        requestBuilders += EndpointBuilder(allProperties).apply(builder)
+    }
+
+    fun websocket(builder: WebsocketBuilder.() -> Unit)
+    {
+        requestBuilders += WebsocketBuilder(allProperties).apply(builder)
     }
 
     fun include(path: String)
@@ -62,10 +60,11 @@ abstract class SquawkScript(
 
         try {
             children += evaluator.evaluateFile(
-                runConfiguration = runConfiguration.copy(
+                runConfiguration = runConfiguration.
+                copy(
                     target = file.loadDescriptor(),
+                    parentProperties = localProperties,
                 ),
-                parent = this,
             )
         } catch (e: ConfigurationError) {
             if (e.context == null) throw e.withContext(file)

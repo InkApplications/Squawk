@@ -5,16 +5,16 @@ import kotlinx.serialization.Transient
 
 @Serializable
 data class ScriptEvaluationResult(
-    val descriptor: FileDescriptor,
-    val endpointResults: List<EndpointBuilder>,
+    val configuration: RunConfiguration,
+    val requestBuilders: List<RequestBuilder>,
     val children: List<ScriptEvaluationResult>,
     val namespace: String?,
 ) {
     @Transient
-    val allEndpointResults: List<Pair<ScriptEvaluationResult, List<EndpointBuilder>>> =
-        listOf(this to endpointResults)
+    val allRequestBuilders: List<Pair<ScriptEvaluationResult, List<RequestBuilder>>> =
+        listOf(this to requestBuilders)
         .plus(
-            children.flatMap { it.allEndpointResults }
+            children.flatMap { it.allRequestBuilders }
                 .map { (childResult, endpoints) -> childResult to endpoints }
         )
 }

@@ -22,13 +22,12 @@ private object ScriptEvaluator: Evaluator
 
     override fun evaluateFile(
         runConfiguration: RunConfiguration,
-        parent: SquawkScript?,
     ): SquawkScript {
         val script = host.eval(
             script = runConfiguration.target.file.toScriptSource(),
             compilationConfiguration = compilationConfiguration,
             evaluationConfiguration = createJvmEvaluationConfigurationFromTemplate<SquawkScript> {
-                constructorArgs(runConfiguration, this@ScriptEvaluator, parent)
+                constructorArgs(runConfiguration, this@ScriptEvaluator)
             }
         ).handleOrThrow()
 
@@ -72,5 +71,5 @@ private object ScriptEvaluator: Evaluator
 fun evaluateOrThrow(
     runConfiguration: RunConfiguration,
 ): SquawkScript {
-    return ScriptEvaluator.evaluateFile(runConfiguration, null)
+    return ScriptEvaluator.evaluateFile(runConfiguration)
 }

@@ -7,7 +7,8 @@ data class RunConfiguration(
     val target: FileDescriptor,
     val propertyFiles: List<FileDescriptor>,
     val properties: PropertyBag,
+    val parentProperties: PropertyBag,
 ) {
-    val schemaVersion: Int = 1
+    val schemaVersion: Int = 2
 }
 

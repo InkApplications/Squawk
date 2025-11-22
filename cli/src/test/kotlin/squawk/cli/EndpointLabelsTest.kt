@@ -11,7 +11,7 @@ class EndpointLabelsTest
     fun blankLabel()
     {
         val script = StubEvaluationResult.copy(
-            endpointResults = listOf(
+            requestBuilders = listOf(
                 StubEndpoint,
             ),
         )
@@ -25,7 +25,7 @@ class EndpointLabelsTest
     fun duplicateDefaults()
     {
         val script = StubEvaluationResult.copy(
-            endpointResults = listOf(
+            requestBuilders = listOf(
                 StubEndpoint,
                 StubEndpoint.copy(),
             ),
@@ -41,7 +41,7 @@ class EndpointLabelsTest
     fun named()
     {
         val script = StubEvaluationResult.copy(
-            endpointResults = listOf(
+            requestBuilders = listOf(
                 StubEndpoint,
                 StubEndpoint.copy(name = "named"),
                 StubEndpoint.copy(name = "With formatting"),
@@ -60,7 +60,7 @@ class EndpointLabelsTest
     {
         val script = StubEvaluationResult.copy(
             namespace = "foo",
-            endpointResults = listOf(
+            requestBuilders = listOf(
                 StubEndpoint,
                 StubEndpoint.copy(),
                 StubEndpoint.copy(name = "named"),
@@ -78,13 +78,13 @@ class EndpointLabelsTest
     fun children()
     {
         val script = StubEvaluationResult.copy(
-            endpointResults = listOf(
+            requestBuilders = listOf(
                 StubEndpoint,
             ),
             children = listOf(
                 StubEvaluationResult.copy(
                     namespace = "foo",
-                    endpointResults = listOf(
+                    requestBuilders = listOf(
                         StubEndpoint,
                     ),
                 ),
@@ -103,12 +103,12 @@ class EndpointLabelsTest
         val script = StubEvaluationResult.copy(
             children = listOf(
                 StubEvaluationResult.copy(
-                    endpointResults = listOf(
+                    requestBuilders = listOf(
                         StubEndpoint.copy(),
                     ),
                 ),
                 StubEvaluationResult.copy(
-                    endpointResults = listOf(
+                    requestBuilders = listOf(
                         StubEndpoint.copy(),
                     ),
                 ),

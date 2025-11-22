@@ -38,11 +38,6 @@ fun printStatus(
     description: String,
     duration: Duration,
 ) {
-    val formattedDuration = when {
-        duration < 1.seconds -> "${duration.inWholeMilliseconds}ms"
-        duration < 1.minutes -> "${duration.inWholeSeconds}s"
-        else -> "${duration.inWholeMinutes}m ${(duration.inWholeSeconds % 60)}s"
-    }
     val codeStyle = when (code) {
         in 200..299 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.green)
         in 300..399 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.cyan)
@@ -50,7 +45,38 @@ fun printStatus(
         in 500..599 -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
         else -> TextStyle(color = TextColors.brightWhite, bgColor = TextColors.yellow)
     }
-    println("${codeStyle(" $code ")} $description in $formattedDuration")
+    println("${codeStyle(" $code ")} $description in ${getDurationString(duration)}")
+}
+
+fun printSocketClosed(
+    duration: Duration,
+) {
+    println("~~~~~~~~~~")
+    println("WebSocket closed after ${getDurationString(duration)}")
+}
+
+private fun getDurationString(duration: Duration): String
+{
+    return when {
+        duration < 1.seconds -> "${duration.inWholeMilliseconds}ms"
+        duration < 1.minutes -> "${duration.inWholeSeconds}s"
+        else -> "${duration.inWholeMinutes}m ${(duration.inWholeSeconds % 60)}s"
+    }
+}
+
+fun printSocketOpen()
+{
+    println("~~~~~~~~~~")
+}
+
+fun printSocketReceiveFrame(data: String)
+{
+    println("<- $data")
+}
+
+fun printSocketSendFrame(data: String)
+{
+    println("-> $data")
 }
 
 fun rawOutput(text: String)

@@ -13,5 +13,10 @@ object SquawkScriptConfig: ScriptCompilationConfiguration({
         defaultImports("squawk.script.Method.Companion.POST")
         defaultImports("squawk.script.Method.Companion.PUT")
         defaultImports("squawk.script.Method.Companion.DELETE")
+        defaultImports("squawk.script.header")
+        defaultImports("squawk.script.userAgent")
+        defaultImports("squawk.script.auth")
+        defaultImports("squawk.script.basicAuth")
+        defaultImports("squawk.script.bearerAuth")
     }
 })

@@ -2,12 +2,18 @@ package squawk.doubles
 
 import squawk.script.EndpointBuilder
 import squawk.script.FileDescriptor
+import squawk.script.RunConfiguration
 import squawk.script.ScriptEvaluationResult
 import squawk.script.Sha256Hash
 
 val StubEvaluationResult = ScriptEvaluationResult(
-    descriptor = FileDescriptor("test-file", Sha256Hash("test-hash")),
-    endpointResults = listOf(),
+    configuration = RunConfiguration(
+        target = FileDescriptor("test-file", Sha256Hash("test-hash")),
+        propertyFiles = emptyList(),
+        properties = emptyMap(),
+        parentProperties = emptyMap(),
+    ),
+    requestBuilders = listOf(),
     children = listOf(),
     namespace = null,
 )
